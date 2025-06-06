@@ -1,7 +1,3 @@
-- name: Debug input variables
-  debug:
-    var: github_pat
-
 - name: "Obtain release details"
   ansible.builtin.uri:
     url: "https://api.github.com/repos/{{ owner }}/{{ repo }}/releases/tags/{{ binary.name }}/{{ binary.version }}"

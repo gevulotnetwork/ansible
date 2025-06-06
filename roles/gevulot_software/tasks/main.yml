@@ -1,3 +1,7 @@
+- name: Debug input variables
+  debug:
+    var: github_pat
+
 - name: Make sure binaries destination exists
   file:
     path: "{{ binary_destination }}"
