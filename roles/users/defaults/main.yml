@@ -1,0 +1,5 @@
+user:
+  name: gevulot
+  uid: 1010
+
+unit_file_path: "/home/{{ user.name }}/.config/containers/systemd"

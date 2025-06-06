@@ -1,0 +1,7 @@
+- name: Allow SSH
+  ansible.posix.firewalld:
+    service: ssh
+    state: enabled
+    permanent: true
+    immediate: true
+    offline: true

@@ -1,0 +1,15 @@
+- name: Make sure binaries destination exists
+  file:
+    path: "{{ binary_destination }}"
+    state: directory
+
+- name: "Download infra-tools binaries"
+  include_tasks: download.yml
+  loop: "{{ binaries }}"
+  loop_control:
+    loop_var: binary
+  vars:
+    owner: "gevulotnetwork"
+    repo: "infra-tools"
+    destination: "{{ binary_destination }}"
+    github_pat: "{{ lookup('env', 'GH_TOKEN') }}"

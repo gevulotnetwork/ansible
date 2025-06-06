@@ -1,0 +1,4 @@
+- name: Wait for cloud-init to complete
+  ansible.builtin.wait_for:
+    path: /var/log/cloud-init-output.log
+    search_regex: "Cloud-init.*finished"

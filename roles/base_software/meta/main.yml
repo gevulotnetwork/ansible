@@ -1,0 +1,9 @@
+dependencies: []
+
+galaxy_info:
+  role_name: base_software
+  author: bhechinger
+  description: Base software for instances
+  company: "Gevulot"
+  license: "Do Not Redistribute"
+  min_ansible_version: 2.15

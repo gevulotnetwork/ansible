@@ -1,0 +1,33 @@
+- name: "Obtain release details"
+  ansible.builtin.uri:
+    url: "https://api.github.com/repos/{{ owner }}/{{ repo }}/releases/tags/{{ binary.name }}/{{ binary.version }}"
+    return_content: true
+    use_netrc: "{{ github_pat | default(false) is falsy }}"
+    headers:
+      "accept": "application/vnd.github+json"
+      "authorization": "{{ 'token ' + github_pat if github_pat | default('') else None }}"
+      "x-github-api-version": "2022-11-28"
+  register: "_gh_release"
+  ignore_errors: true
+
+- debug:
+    var: _gh_release
+  when: _gh_release is failed
+
+- fail:
+    msg: "Getting release info failed"
+  when: _gh_release is failed
+
+- name: "Download binaries from GitHub"
+  vars:
+    gh_release_asset_url: "{{ _gh_release.json.assets | selectattr('name', 'equalto', binary.name) | map(attribute='url') | first }}"
+  ansible.builtin.get_url:
+    url: "{{ gh_release_asset_url }}"
+    dest: "/{{ destination }}/{{ binary.name }}"
+    mode: "0755"
+
+    use_netrc: "{{ github_pat | default(false) is falsy }}"
+    headers:
+      "accept": "application/octet-stream"
+      "authorization": "{{ 'token ' + github_pat if github_pat | default('') else None }}"
+      "x-github-api-version": "2022-11-28"

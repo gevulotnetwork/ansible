@@ -1,4 +1,18 @@
 - hosts: localhost
+  vars:
+    binaries:
+      - name: deployd
+        version: v0.1.2
+      - name: deployctl
+        version: v0.1.0
+
+  roles:
+#    - wait_for_cloud_init
+    - base_software
+    - users
+    - gevulot_software
+    - firewall
+
   tasks:
     - name: The thing
       debug:

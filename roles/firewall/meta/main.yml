@@ -1,0 +1,9 @@
+dependencies: []
+
+galaxy_info:
+  role_name: firewall
+  author: bhechinger
+  description: Firewall config for instances
+  company: "Gevulot"
+  license: "Do Not Redistribute"
+  min_ansible_version: 2.15

@@ -1,0 +1,58 @@
+- name: Add Hashicorp apt repo
+  ansible.builtin.deb822_repository:
+    name: hashicorp
+    types: deb
+    uris: https://apt.releases.hashicorp.com
+    suites: '{{ ansible_distribution_release }}'
+    components: main
+    architectures: amd64
+    signed_by: https://apt.releases.hashicorp.com/gpg
+
+- name: Add Grafana apt repo
+  ansible.builtin.deb822_repository:
+    name: grafana
+    types: deb
+    uris: https://apt.grafana.com
+    suites: stable
+    components: main
+    architectures: amd64
+    signed_by: https://apt.grafana.com/gpg.key
+
+- name: Update cache
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Update all Debian/Ubuntu packages to their latest version
+  ansible.builtin.apt:
+    name: "*"
+    state: latest
+
+- name: Install base software packages
+  package:
+    name:
+      - curl
+      - git
+      - ansible
+      - gpg
+      - kitty-terminfo
+      - tmux
+      - vim
+      - acl
+      - iputils-ping
+      - jq
+      - rsync
+      - systemd-container
+      - sqlite3
+      - podman
+      - prometheus-node-exporter
+      - prometheus-node-exporter-collectors
+      - nginx
+      - "nomad={{ nomad_version }}"
+      - alloy
+      - firewalld
+      - python3-firewall
+    state: latest
+
+- name: Run autoremove
+  ansible.builtin.apt:
+    autoremove: true
