@@ -1,0 +1,94 @@
+- hosts: localhost
+  tasks:
+    - name: Check if the genesis file has been generated
+      become: true
+      stat:
+        path: "{{ zenith_config_dir }}/genesis.json"
+      register: genesis_file
+
+    - name: Generate initial config
+      become: true
+      become_user: "{{ user.name }}"
+      containers.podman.podman_container:
+        name: zenith
+        image: "{{ zenith_image }}:{{ zenith_tag }}"
+        rm: true
+        log_options: "path=/tmp/{{ chain_id }}-init-config.log"
+        log_driver: k8s-file
+        volume:
+          - "{{ zenith_base_dir }}:{{ zenith_home }}"
+        entrypoint: /app/gevulotd
+        command:
+          - init
+          - "{{ node_name }}"
+          - --default-denom
+          - "{{ denom }}"
+          - --chain-id
+          - "{{ chain_id }}"
+      when: not genesis_file.stat.exists
+
+    - block:
+        - name: Get ssl certs
+          include_role:
+            name: ssl_certs
+
+        - name: write ssl files
+          become: true
+          copy:
+            content: "{{ item.content }}"
+            dest: "{{ zenith_certs_dir }}/{{ item.file }}"
+            owner: "{{ user.name }}"
+            group: "{{ user.name }}"
+          loop:
+            - { content: "{{ ssl_key }}", file: "zenith.key" }
+            - { content: "{{ ssl_cert }}", file: "zenith.pem" }
+
+        - name: set cert names
+          set_fact:
+            ssl_cert_name: "certs/zenith.pem"
+            ssl_key_name: "certs/zenith.key"
+
+      when: node_settings.cert.self_signed
+
+    - name: Check if key file exists
+      become: true
+      stat:
+        path: "{{ zenith_base_dir }}/keyring-file/{{ node_name }}.info"
+      register: key_file
+
+    - name: Add key to keyring if it doesn't exist
+      block:
+        - debug:
+            var: secret_name
+
+        - name: Set secret value
+          set_fact:
+            node_secret: "{{ lookup('google.cloud.gcp_secret_manager', key=secret_name, auth_kind='application', project=gcp_project_name) }}"
+
+        - name: Create recover key script
+          become: true
+          template:
+            src: recover_key.sh.j2
+            dest: "{{ zenith_base_dir }}/recover_key.sh"
+            mode: '755'
+
+        - name: Recover account
+          become: true
+          become_user: "{{ user.name }}"
+          containers.podman.podman_container:
+            name: "recover-keys-{{ node_name }}.{{ region }}"
+            image: "{{ zenith_image }}:{{ zenith_tag }}"
+            rm: true
+            detach: false
+            log_options: "path=/tmp/{{ chain_id }}-recover-account.log"
+            log_driver: k8s-file
+            volume:
+              - "{{ zenith_base_dir }}:{{ zenith_home }}"
+            entrypoint: "{{ zenith_home }}/recover_key.sh"
+
+        - name: Delete recover key script
+          become: true
+          file:
+            path: "{{ zenith_base_dir }}/recover_key.sh"
+            state: absent
+      when: not key_file.stat.exists

@@ -1,0 +1,7 @@
+#!/bin/sh
+
+/app/gevulotd keys add "{{ node_name }}" --keyring-backend file --recover << EOF
+{{ node_secret.mnemonic }}
+{{ node_secret.account_password }}
+{{ node_secret.account_password }}
+EOF
