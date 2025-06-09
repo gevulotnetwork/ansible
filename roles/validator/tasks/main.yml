@@ -2,5 +2,5 @@
   tasks:
     - name: Check if config file has been deployed
       stat:
-        path: "{{ ember_base_dir }}/config/config.toml"
-      register: ember_config_file
+        path: "{{ zenith_base_dir }}/config/config.toml"
+      register: zenith_config_file
