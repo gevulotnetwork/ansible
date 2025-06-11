@@ -13,7 +13,7 @@
     log_driver: k8s-file
     volume:
       - "{{ zenith_base_dir }}:{{ zenith_home }}"
-    entrypoint: /app/zenithd
+    entrypoint: /bin/zenithd
     command:
       - init
       - "{{ node_name }}"
