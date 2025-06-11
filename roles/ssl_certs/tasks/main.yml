@@ -1,0 +1,11 @@
+---
+- block:
+    - name: Create private key
+      community.crypto.openssl_privatekey:
+        path: "{{ ssl_key_path }}"
+
+    - name: Create simple self-signed certificate
+      community.crypto.x509_certificate:
+        path: "{{ ssl_cert_path }}"
+        privatekey_path: "{{ ssl_key_path }}"
+        provider: selfsigned

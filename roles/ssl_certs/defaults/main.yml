@@ -1,0 +1,5 @@
+ssl_key_name: "{{ chain.id }}-{{ component }}-certificate-key"
+ssl_cert_name: "{{ chain.id }}-{{ component }}-certificate-cert"
+
+ssl_key_path: "/tmp/{{ ssl_key_name }}"
+ssl_cert_path: "/tmp/{{ ssl_cert_name }}"
