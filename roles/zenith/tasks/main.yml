@@ -23,26 +23,6 @@
       - "{{ chain_id }}"
   when: not genesis_file.stat.exists
 
-- block:
-    - name: Get ssl certs
-      include_role:
-        name: ssl_certs
-
-    - name: write ssl files
-      copy:
-        content: "{{ item.content }}"
-        dest: "{{ zenith_certs_dir }}/{{ item.file }}"
-        owner: "{{ user.name }}"
-        group: "{{ user.name }}"
-      loop:
-        - { content: "{{ ssl_key }}", file: "zenith.key" }
-        - { content: "{{ ssl_cert }}", file: "zenith.pem" }
-
-    - name: set cert names
-      set_fact:
-        ssl_cert_name: "certs/zenith.pem"
-        ssl_key_name: "certs/zenith.key"
-
 - name: Check if key file exists
   stat:
     path: "{{ zenith_base_dir }}/keyring-file/{{ node_name }}.info"
