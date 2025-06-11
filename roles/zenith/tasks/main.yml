@@ -30,9 +30,6 @@
 
 - name: Add key to keyring if it doesn't exist
   block:
-    - debug:
-        var: secret_name
-
     - name: Create recover key script
       template:
         src: recover_key.sh.j2
