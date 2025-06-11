@@ -1,6 +1,6 @@
 #!/bin/sh
 
-/app/gevulotd keys add "{{ node_name }}" --keyring-backend file --recover << EOF
+/app/zenithd keys add "{{ node_name }}" --keyring-backend file --recover << EOF
 {{ mnemonic }}
 {{ account_password }}
 {{ account_password }}
