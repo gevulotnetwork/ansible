@@ -47,7 +47,6 @@
       - prometheus-node-exporter
       - prometheus-node-exporter-collectors
       - nginx
-      - "nomad={{ nomad_version }}"
       - alloy
       - firewalld
       - python3-firewall
