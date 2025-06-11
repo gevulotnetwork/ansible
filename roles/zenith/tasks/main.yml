@@ -43,8 +43,6 @@
         ssl_cert_name: "certs/zenith.pem"
         ssl_key_name: "certs/zenith.key"
 
-  when: node_settings.cert.self_signed
-
 - name: Check if key file exists
   stat:
     path: "{{ zenith_base_dir }}/keyring-file/{{ node_name }}.info"
