@@ -1,5 +1,5 @@
 - name: "setup part nodes: get node id"
-  become_user: "{{ node.user.name }}"
+  become_user: "{{ user_name }}"
   containers.podman.podman_container:
     name: "get-node-id-{{ inventory_hostname }}.{{ region }}"
     image: "{{ zenith_image }}:{{ zenith_tag }}"
