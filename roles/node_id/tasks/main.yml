@@ -1,0 +1,27 @@
+- name: "setup part nodes: get node id"
+  become_user: "{{ node.user.name }}"
+  containers.podman.podman_container:
+    name: "get-node-id-{{ inventory_hostname }}.{{ region }}"
+    image: "{{ zenith_image }}:{{ zenith_tag }}"
+    rm: true
+    detach: false
+    log_options: "path=/tmp/{{ chain_id }}-get-node-id.log"
+    log_driver: k8s-file
+    volume:
+      - "{{ zenith_base_dir }}:{{ zenith_home }}"
+    entrypoint: /bin/zenithd
+    command:
+      - tendermint
+      - show-node-id
+  register: get_node_id_output
+
+- name: "setup part nodes : create node_id"
+  set_fact:
+    node_id: "{{ get_node_id_output.stdout_lines[0] }}"
+
+- name: "setup part nodes : write out node_id file"
+  template:
+    src: node_id.j2
+    dest: "{{ zenith_base_dir }}/node_id"
+    owner: "{{ user_name }}"
+    group: "{{ user_name }}"
