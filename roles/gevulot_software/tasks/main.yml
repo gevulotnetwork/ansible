@@ -16,3 +16,4 @@
     owner: "gevulotnetwork"
     repo: "infra-tools"
     destination: "{{ binary_destination }}"
+    pat_token: "{{ github_pat }}"
