@@ -19,6 +19,11 @@
     pat_token: "{{ github_pat }}"
   when: binaries is defined
 
+- name: Copy deployd config file
+  file:
+    src: files/deployd.json
+    dest: /etc/deployd.json
+
 - name: Create deployd systemd unit
   vars:
     service:

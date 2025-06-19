@@ -1,0 +1,8 @@
+{
+  "chain_id": "unset",
+  "region": "unset",
+  "hostname": "unset",
+  "app_base_dir": "/node-data",
+  "alloy_config_dir": "/etc/alloy",
+  "queue": "amqp://unset:unset@localhost:5672"
+}
