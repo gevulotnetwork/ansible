@@ -55,3 +55,18 @@
 - name: Run autoremove
   ansible.builtin.apt:
     autoremove: true
+
+- name: Write requirements file
+  vars:
+    requirements:
+      - ansible
+      - python-debian
+  template:
+    src: requirements.txt.j2
+    dest: /root/requirements.txt
+
+- name: Install ansible in a venv
+  pip:
+    requirements: /root/requirements.txt
+    virtualenv: /root/ansible
+    virtualenv_python: python3
