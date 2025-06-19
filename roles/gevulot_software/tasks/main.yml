@@ -17,6 +17,7 @@
     repo: "infra-tools"
     destination: "{{ binary_destination }}"
     pat_token: "{{ github_pat }}"
+  when: binaries is defined
 
 - name: Create deployd systemd unit
   vars:
