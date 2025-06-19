@@ -20,8 +20,8 @@
   when: binaries is defined
 
 - name: Copy deployd config file
-  file:
-    src: files/deployd.json
+  template:
+    src: templates/deployd.json.j2
     dest: /etc/deployd.json
 
 - name: Create deployd systemd unit
