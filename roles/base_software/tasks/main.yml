@@ -50,6 +50,7 @@
       - alloy
       - firewalld
       - python3-firewall
+      - python3-virtualenv
     state: latest
 
 - name: Run autoremove
