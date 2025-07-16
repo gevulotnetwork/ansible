@@ -1,7 +1,11 @@
 - name: Allow SSH
   ansible.posix.firewalld:
-    service: ssh
+    service: "{{ item }}"
     state: enabled
     permanent: true
     immediate: true
     offline: true
+  loop:
+    - ssh
+    - http
+    - https

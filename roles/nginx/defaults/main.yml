@@ -1,0 +1,3 @@
+ssl_certs_dir: "/etc/gevulot/certs"
+ssl_key_filename: "{{ ssl_certs_dir }}/{{ chain.id }}-certificate.key"
+ssl_cert_filename: "{{ ssl_certs_dir }}/{{ chain.id }}-certificate.crt"
