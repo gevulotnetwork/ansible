@@ -1,12 +1,12 @@
-- name: Enable/Start Podman Socket
-  become: true
-  become_user: "{{ user.name }}"
-  command: systemctl --user {{ item }} podman.socket
-  environment:
-    XDG_RUNTIME_DIR: "/run/user/{{ user.uid }}"
-  loop:
-    - enable
-    - start
+# - name: Enable/Start Podman Socket
+#   become: true
+#   become_user: "{{ user.name }}"
+#   command: systemctl --user {{ item }} podman.socket
+#   environment:
+#     XDG_RUNTIME_DIR: "/run/user/{{ user.uid }}"
+#   loop:
+#     - enable
+#     - start
 
 - debug:
     msg: "Copying config file: {{ alloy_base_dir }}/config.alloy"
