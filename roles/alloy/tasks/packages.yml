@@ -23,6 +23,5 @@
       - jq
       - rsync
       - node-exporter
-      - node-exporter-collectors
       - alloy
     state: latest
