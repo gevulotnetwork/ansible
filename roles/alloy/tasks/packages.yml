@@ -20,10 +20,9 @@
       - tmux
       - vim
       - acl
-      - iputils-ping
       - jq
       - rsync
-      - prometheus-node-exporter
-      - prometheus-node-exporter-collectors
+      - node-exporter
+      - node-exporter-collectors
       - alloy
     state: latest
