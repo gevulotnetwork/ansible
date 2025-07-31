@@ -1,3 +1,8 @@
+- name: Install python-debian
+  package:
+    name: python-debian
+  state: latest
+
 - name: Add Grafana apt repo
   ansible.builtin.deb822_repository:
     name: grafana
