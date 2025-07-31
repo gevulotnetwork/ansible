@@ -3,9 +3,10 @@
     name: python-debian
     state: latest
 
-- name: Add repo rhel-t-stage
+- name: Add repo grafana
   yum_repository:
     name: grafana
+    description: Grafana Repo
     baseurl: https://rpm.grafana.com
     gpgcheck: yes
     gpgkey: https://rpm.grafana.com/gpg.key
