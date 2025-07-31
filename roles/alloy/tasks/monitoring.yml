@@ -1,0 +1,37 @@
+- name: Enable/Start Podman Socket
+  become: true
+  become_user: "{{ user.name }}"
+  command: systemctl --user {{ item }} podman.socket
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ user.uid }}"
+  loop:
+    - enable
+    - start
+
+- debug:
+    msg: "Copying config file: {{ alloy_base_dir }}/config.alloy"
+
+- name: Copy config file
+  template:
+    src: "config.alloy.j2"
+    dest: "{{ alloy_base_dir }}/config.alloy"
+  notify:
+    - restart alloy
+# TODO: This will be added later
+# - include_role:
+#     name: services
+#   vars:
+#     service: podman-exporter
+#     image:
+#       name: "quay.io/navidys/prometheus-podman-exporter"
+#       tag: "latest"
+#     volume_dirs:
+#       - name: "/run/user/{{ user.uid }}/podman/podman.sock"
+#         path: /run/podman/podman.sock
+#     ports:
+#       - "127.0.0.1:9882:9882"
+#     extra_podman_flags:
+#       - --userns keep-id:uid=65534
+#       - --security-opt label=disable
+#     extra_flags:
+#       - --collector.enable-all

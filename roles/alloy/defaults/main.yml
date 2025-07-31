@@ -1,0 +1,2 @@
+alloy_base_dir: /etc/alloy
+fqdn: "{{ inventory_hostname }}.{{ region }}.{{ chain.id }}.{{ domain }}"

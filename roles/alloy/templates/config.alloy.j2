@@ -1,0 +1,147 @@
+logging {
+  level  = "info"
+  format = "json"
+}
+
+prometheus.exporter.self "alloy_check" { }
+
+discovery.relabel "alloy_check" {
+  targets = prometheus.exporter.self.alloy_check.targets
+
+  rule {
+    target_label = "instance"
+    replacement  = "{{ fqdn }}"
+  }
+
+  rule {
+    target_label = "alloy_hostname"
+    replacement  = constants.hostname
+  }
+
+  rule {
+    target_label = "job"
+    replacement  = "integrations/alloy-check"
+  }
+}
+
+prometheus.scrape "alloy_check" {
+  targets    = discovery.relabel.alloy_check.output
+  forward_to = [prometheus.relabel.alloy_check.receiver]
+
+  scrape_interval = "60s"
+}
+
+prometheus.relabel "alloy_check" {
+  forward_to = [prometheus.remote_write.metrics_service.receiver]
+
+  rule {
+    source_labels = ["__name__"]
+    regex         = "(prometheus_target_sync_length_seconds_sum|prometheus_target_scrapes_.*|prometheus_target_interval.*|prometheus_sd_discovered_targets|alloy_build.*|prometheus_remote_write_wal_samples_appended_total|process_start_time_seconds)"
+    action        = "keep"
+  }
+}
+
+prometheus.scrape "node" {
+  forward_to = [prometheus.relabel.node.receiver]
+
+  targets    = [{
+    __address__       = "localhost:26660",
+    network           = "{{ chain.id }}",
+    region            = "{{ region }}",
+    node_id           = "{{ node_id }}",
+    gcp_instance_id   = "{{ instance_data.v1.instance_id }}",
+    availability_zone = "{{ instance_data.v1.availability_zone }}",
+    function          = "{{ function }}",
+  }]
+  scrape_interval = "60s"
+}
+
+# TODO: Add this later
+# prometheus.scrape "podman" {
+#   forward_to = [prometheus.relabel.podman.receiver]
+#
+#   targets    = [{
+#     __address__       = "localhost:9882",
+#     network           = "{{ chain.id }}",
+#     region            = "{{ region }}",
+#     node_id           = "{{ node_id }}",
+#     gcp_instance_id   = "{{ instance_data.v1.instance_id }}",
+#     availability_zone = "{{ instance_data.v1.availability_zone }}",
+#   }]
+#   scrape_interval = "60s"
+# }
+
+prometheus.relabel "node" {
+  forward_to = [prometheus.remote_write.metrics_service.receiver]
+
+  rule {
+    target_label = "instance"
+    replacement  = "{{ fqdn }}"
+  }
+
+  // Reduce most of the Cosmos SDK cardinality by dropping some p2p metrics.
+  rule {
+    source_labels = ["__name__"]
+    regex         = "cometbft_p2p_.*_bytes_total"
+    action        = "drop"
+  }
+}
+
+# TODO: Add this later
+# prometheus.relabel "podman" {
+#   forward_to = [prometheus.remote_write.metrics_service.receiver]
+#
+#   rule {
+#     target_label = "instance"
+#     replacement  = "{{ fqdn }}"
+#   }
+# }
+
+loki.relabel "journal" {
+  forward_to = []
+
+  rule {
+    source_labels = ["__journal__systemd_unit"]
+    target_label  = "unit"
+  }
+
+  rule {
+    source_labels = ["__journal__systemd_unit"]
+    regex         = ".*\\.service$"
+    action        = "keep"
+  }
+
+  rule {
+    target_label = "instance"
+    replacement  = "{{ fqdn }}"
+  }
+}
+
+loki.source.journal "read"  {
+  forward_to    = [loki.write.grafana_cloud_loki.receiver]
+  relabel_rules = loki.relabel.journal.rules
+  labels        = {component = "loki.source.journal"}
+  path          = "/var/log/journal"
+}
+
+prometheus.remote_write "metrics_service" {
+  endpoint {
+    url = "{{ grafana_alloy.metrics_service.url }}"
+
+    basic_auth {
+      username = "{{ grafana_alloy.metrics_service.auth.username }}"
+      password = "{{ grafana_alloy.metrics_service.auth.password }}"
+    }
+  }
+}
+
+loki.write "grafana_cloud_loki" {
+  endpoint {
+    url = "{{ grafana_alloy.loki_service.url }}"
+
+    basic_auth {
+      username = "{{ grafana_alloy.loki_service.auth.username }}"
+      password = "{{ grafana_alloy.loki_service.auth.password }}"
+    }
+  }
+}
