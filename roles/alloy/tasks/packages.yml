@@ -3,24 +3,12 @@
     name: python-debian
     state: latest
 
-- name: Add Grafana apt repo
-  ansible.builtin.deb822_repository:
+- name: Add repo rhel-t-stage
+  yum_repositoriy:
     name: grafana
-    types: deb
-    uris: https://apt.grafana.com
-    suites: stable
-    components: main
-    architectures: amd64
-    signed_by: https://apt.grafana.com/gpg.key
-
-- name: Update cache
-  ansible.builtin.apt:
-    update_cache: true
-
-- name: Update all Debian/Ubuntu packages to their latest version
-  ansible.builtin.apt:
-    name: "*"
-    state: latest
+    baseurl: https://rpm.grafana.com
+    gpgcheck: yes
+    gpgkey: https://rpm.grafana.com/gpg.key
 
 - name: Install base software packages
   package:
