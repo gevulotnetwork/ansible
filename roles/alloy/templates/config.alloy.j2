@@ -46,7 +46,7 @@ prometheus.scrape "node" {
 
   targets    = [{
     __address__       = "localhost:26660",
-    network           = "{{ chain.id }}",
+    network           = "{{ chain_id }}",
     region            = "{{ region }}",
     node_id           = "{{ node_id }}",
     gcp_instance_id   = "{{ instance_data.v1.instance_id }}",
@@ -62,7 +62,7 @@ prometheus.scrape "node" {
 #
 #   targets    = [{
 #     __address__       = "localhost:9882",
-#     network           = "{{ chain.id }}",
+#     network           = "{{ chain_id }}",
 #     region            = "{{ region }}",
 #     node_id           = "{{ node_id }}",
 #     gcp_instance_id   = "{{ instance_data.v1.instance_id }}",
