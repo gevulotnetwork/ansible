@@ -55,19 +55,19 @@ prometheus.scrape "node" {
   scrape_interval = "60s"
 }
 
-# TODO: Add this later
-# prometheus.scrape "podman" {
-#   forward_to = [prometheus.relabel.podman.receiver]
-#
-#   targets    = [{
-#     __address__       = "localhost:9882",
-#     chain_id          = "{{ chain_id }}",
-#     network           = "{{ network }}",
-#     region            = "{{ region }}",
-#     node_id           = "{{ node_id }}",
-#   }]
-#   scrape_interval = "60s"
-# }
+// TODO: Add this later
+// prometheus.scrape "podman" {
+//   forward_to = [prometheus.relabel.podman.receiver]
+//
+//   targets    = [{
+//     __address__       = "localhost:9882",
+//     chain_id          = "{{ chain_id }}",
+//     network           = "{{ network }}",
+//     region            = "{{ region }}",
+//     node_id           = "{{ node_id }}",
+//   }]
+//   scrape_interval = "60s"
+// }
 
 prometheus.relabel "node" {
   forward_to = [prometheus.remote_write.metrics_service.receiver]
@@ -85,15 +85,15 @@ prometheus.relabel "node" {
   }
 }
 
-# TODO: Add this later
-# prometheus.relabel "podman" {
-#   forward_to = [prometheus.remote_write.metrics_service.receiver]
-#
-#   rule {
-#     target_label = "instance"
-#     replacement  = "{{ fqdn }}"
-#   }
-# }
+// TODO: Add this later
+// prometheus.relabel "podman" {
+//   forward_to = [prometheus.remote_write.metrics_service.receiver]
+//
+//   rule {
+//     target_label = "instance"
+//     replacement  = "{{ fqdn }}"
+//   }
+// }
 
 loki.relabel "journal" {
   forward_to = []
