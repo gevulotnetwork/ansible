@@ -46,11 +46,10 @@ prometheus.scrape "node" {
 
   targets    = [{
     __address__       = "localhost:26660",
-    network           = "{{ chain_id }}",
+    chain_id          = "{{ chain_id }}",
+    network           = "{{ network }}",
     region            = "{{ region }}",
     node_id           = "{{ node_id }}",
-    gcp_instance_id   = "{{ instance_data.v1.instance_id }}",
-    availability_zone = "{{ instance_data.v1.availability_zone }}",
     function          = "{{ function }}",
   }]
   scrape_interval = "60s"
@@ -62,11 +61,10 @@ prometheus.scrape "node" {
 #
 #   targets    = [{
 #     __address__       = "localhost:9882",
-#     network           = "{{ chain_id }}",
+#     chain_id          = "{{ chain_id }}",
+#     network           = "{{ network }}",
 #     region            = "{{ region }}",
 #     node_id           = "{{ node_id }}",
-#     gcp_instance_id   = "{{ instance_data.v1.instance_id }}",
-#     availability_zone = "{{ instance_data.v1.availability_zone }}",
 #   }]
 #   scrape_interval = "60s"
 # }
