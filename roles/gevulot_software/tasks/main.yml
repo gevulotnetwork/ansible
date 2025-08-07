@@ -37,4 +37,5 @@
 - name: Enable deployd systemd unit
   ansible.builtin.systemd_service:
     name: deployd
-    state: enabled
+    enabled: true
+    state: started
