@@ -19,10 +19,10 @@
     pat_token: "{{ github_pat }}"
   when: binaries is defined
 
-- name: Copy deployd config file
-  template:
-    src: templates/deployd.json.j2
-    dest: /etc/deployd.json
+# - name: Copy deployd config file
+#   template:
+#     src: templates/deployd.json.j2
+#     dest: /etc/deployd.json
 
 - name: Create deployd systemd unit
   vars:

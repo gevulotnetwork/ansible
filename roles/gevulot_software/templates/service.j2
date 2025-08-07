@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart={{ service.binary }}
+ExecStart={{ service.binary }} gcp-meta-data
 Restart=on-failure
 
 [Install]
