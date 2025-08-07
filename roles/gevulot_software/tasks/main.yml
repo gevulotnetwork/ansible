@@ -29,6 +29,12 @@
     service:
       description: "deployd service"
       binary: "/opt/bin/deployd"
+      rust_log: "debug"
   template:
     src: templates/service.j2
     dest: /lib/systemd/system/deployd.service
+
+- name: Enable deployd systemd unit
+  ansible.builtin.systemd_service:
+    name: deployd
+    state: enabled
