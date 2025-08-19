@@ -34,12 +34,12 @@
       template:
         src: recover_key.sh.j2
         dest: "{{ zenith_base_dir }}/recover_key.sh"
-        mode: '755'
+        mode: "755"
 
     - name: Recover account
       become_user: "{{ user.name }}"
       containers.podman.podman_container:
-        name: "recover-keys-{{ node_name }}.{{ region }}"
+        name: "recover-key"
         image: "{{ zenith_image }}:{{ zenith_tag }}"
         rm: true
         detach: false
