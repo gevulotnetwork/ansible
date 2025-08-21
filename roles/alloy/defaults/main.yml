@@ -1,2 +1,1 @@
 alloy_base_dir: /etc/alloy
-fqdn: "{{ inventory_hostname }}.{{ region }}.{{ network }}.{{ domain }}"

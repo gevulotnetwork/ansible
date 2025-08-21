@@ -1,3 +1,0 @@
----
-zenith_tag: "{{ chain_id }}-zenith-stable"
-zenith_base_dir: "/node-data/{{ chain_id }}/zenith/data"
