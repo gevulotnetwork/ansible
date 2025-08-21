@@ -1,5 +1,0 @@
-ssl_key_name: "{{ chain_id }}-certificate-key"
-ssl_cert_name: "{{ chain_id }}-certificate-cert"
-
-ssl_key_path: "/node-data/{{ chain_id }}/zenith/config/certs/{{ ssl_key_name }}"
-ssl_cert_path: "/node-data/{{ chain_id }}/zenith/config/certs/{{ ssl_cert_name }}"
