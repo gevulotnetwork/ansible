@@ -1,3 +1,9 @@
+- name: ensure firewalld is running
+  ansible.builtin.systemd_service:
+    enabled: true
+    name: firewalld
+    state: started
+
 - name: Allow SSH
   ansible.posix.firewalld:
     service: "{{ item }}"
