@@ -1,0 +1,24 @@
+- name: Deploy mock_service.py script
+  ansible.builtin.copy:
+    src: mock_service.py
+    dest: "{{ canton_scripts_dir }}/mock_service.py"
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0755"
+
+- name: Deploy canton-mock-service systemd services
+  ansible.builtin.template:
+    src: canton-mock-service.service.j2
+    dest: "/etc/systemd/system/canton-{{ mock_service.name }}.service"
+    mode: "0644"
+  loop: "{{ canton_mock_services }}"
+  loop_control:
+    loop_var: mock_service
+  notify:
+    - reload systemd
+
+- name: Enable canton-mock-service services
+  ansible.builtin.systemd_service:
+    name: "canton-{{ item.name }}"
+    enabled: true
+  loop: "{{ canton_mock_services }}"

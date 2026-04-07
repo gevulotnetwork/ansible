@@ -1,0 +1,13 @@
+[Unit]
+Description="Create Canton Network topology"
+After=canton-participant1.service canton-participant2.service canton-participant3.service
+Wants=canton-participant1.service canton-participant2.service canton-participant3.service
+PartOf=zenith.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/canton/bin/setup-network
+RemainAfterExit=yes
+
+[Install]
+WantedBy=zenith.target

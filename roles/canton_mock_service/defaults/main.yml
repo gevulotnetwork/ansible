@@ -1,0 +1,3 @@
+# canton_mock_services is defined in inventory group_vars
+# Each entry has: name, description, port
+canton_mock_services: []

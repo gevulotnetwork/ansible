@@ -1,0 +1,11 @@
+- name: Install Zenith binaries
+  ansible.builtin.include_tasks: install_zenith_component.yml
+  loop:
+    - name: zenith-relayer
+      version: "{{ zenith_relayer_version }}"
+    - name: zenith-node
+      version: "{{ zenith_node_version }}"
+    - name: zenith-ecs
+      version: "{{ zenith_ecs_version }}"
+  loop_control:
+    loop_var: zenith_component

@@ -1,0 +1,154 @@
+// Distributed External Call Integration Test - Setup Script
+// This script sets up the distributed Canton network:
+// - Participant1 (Alice) - Signatory with extension
+// - Participant2 (Bob) - Signatory with extension
+// - Participant3 (Charlie) - Observer without extension
+//
+// Run this first, then use test-distributed.canton to execute tests.
+
+import com.digitalasset.canton.protocol.LfContractId
+
+println("=" * 60)
+println("Distributed External Call Test - SETUP")
+println("=" * 60)
+
+// ============================================================
+// Phase 1: Wait for all remote nodes to be running
+// ============================================================
+println("\n[Phase 1] Waiting for remote nodes to be ready...")
+
+def waitForNode(name: String, check: => Boolean, maxAttempts: Int = 60): Unit = {
+  var attempts = 0
+  while (attempts < maxAttempts && !check) {
+    if (attempts % 10 == 0) println(s"  Waiting for $name... (attempt ${attempts + 1}/$maxAttempts)")
+    Thread.sleep(1000)
+    attempts += 1
+  }
+  if (!check) sys.error(s"$name did not become ready after $maxAttempts seconds")
+  println(s"  $name is ready!")
+}
+
+// Wait for sequencer
+waitForNode("sequencer1", {
+  try { sequencer1.health.is_running() } catch { case _: Exception => false }
+})
+
+// Wait for mediator
+waitForNode("mediator1", {
+  try { mediator1.health.is_running() } catch { case _: Exception => false }
+})
+
+// Wait for participant1
+waitForNode("participant1", {
+  try { participant1.health.is_running() } catch { case _: Exception => false }
+})
+
+// Wait for participant2
+waitForNode("participant2", {
+  try { participant2.health.is_running() } catch { case _: Exception => false }
+})
+
+// Wait for participant3
+waitForNode("participant3", {
+  try { participant3.health.is_running() } catch { case _: Exception => false }
+})
+
+println("All remote nodes are running!")
+
+// ============================================================
+// Phase 2: Bootstrap the synchronizer
+// ============================================================
+println("\n[Phase 2] Bootstrapping synchronizer...")
+
+bootstrap.synchronizer(
+  "da",
+  sequencers = Seq(sequencer1),
+  mediators = Seq(mediator1),
+  synchronizerOwners = Seq(sequencer1),
+  synchronizerThreshold = PositiveInt.one,
+  staticSynchronizerParameters = StaticSynchronizerParameters.defaultsWithoutKMS(ProtocolVersion.dev),
+)
+
+println("Synchronizer 'da' bootstrapped with dev protocol version.")
+
+// ============================================================
+// Phase 3: Connect participants to sequencer (remote connection)
+// ============================================================
+println("\n[Phase 3] Connecting participants to synchronizer...")
+
+val sequencerUrl = "http://127.0.0.1:5008"
+
+participant1.synchronizers.connect("da", sequencerUrl)
+println("  participant1 (Alice) connected to sequencer")
+
+participant2.synchronizers.connect("da", sequencerUrl)
+println("  participant2 (Bob) connected to sequencer")
+
+participant3.synchronizers.connect("da", sequencerUrl)
+println("  participant3 (Charlie) connected to sequencer")
+
+// Wait for connections to be active
+utils.retry_until_true(timeout = 30.seconds) {
+  participant1.synchronizers.active("da") &&
+  participant2.synchronizers.active("da") &&
+  participant3.synchronizers.active("da")
+}
+println("All participants connected and active!")
+
+// ============================================================
+// Phase 4: Create parties
+// ============================================================
+println("\n[Phase 4] Creating parties...")
+
+val alice = participant1.parties.enable("Alice")
+val bob = participant2.parties.enable("Bob")
+val charlie = participant3.parties.enable("Charlie")
+
+println(s"  Alice (signatory):   $alice")
+println(s"  Bob (signatory):     $bob")
+println(s"  Charlie (observer):  $charlie")
+
+// ============================================================
+// Phase 5: Upload DAR to all participants
+// ============================================================
+println("\n[Phase 5] Uploading DAR...")
+
+val darPathProp = System.getProperty("dar.path")
+println(s"  DAR path from property: $darPathProp")
+val darPath = Option(darPathProp)
+  .getOrElse(sys.error("dar.path system property must be set"))
+println(s"  Using DAR path: $darPath")
+
+val synchronizerId = participant1.synchronizers.id_of(SynchronizerAlias.tryCreate("da"))
+participant1.dars.upload(darPath, synchronizerId = synchronizerId)
+println("  DAR uploaded to participant1 (Alice)")
+
+participant2.dars.upload(darPath, synchronizerId = synchronizerId)
+println("  DAR uploaded to participant2 (Bob)")
+
+participant3.dars.upload(darPath, synchronizerId = synchronizerId)
+println("  DAR uploaded to participant3 (Charlie)")
+
+// ============================================================
+// Setup Complete
+// ============================================================
+println("\n" + "=" * 60)
+println("SETUP COMPLETE!")
+println("=" * 60)
+println("")
+println("Network topology:")
+println("  Sequencer:    sequencer1  (port 5008)")
+println("  Mediator:     mediator1   (port 5007)")
+println("  Participant1: Alice       (signatory, has extension)")
+println("  Participant2: Bob         (signatory, has extension)")
+println("  Participant3: Charlie     (observer, no extension)")
+println("")
+println("Parties:")
+println(s"  Alice:   $alice")
+println(s"  Bob:     $bob")
+println(s"  Charlie: $charlie")
+println("")
+println("To run tests, use: test-distributed.canton")
+println("To connect manually:")
+println("  java -jar <canton.jar> -c remote-admin.conf --no-tty")
+println("")

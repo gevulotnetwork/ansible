@@ -1,0 +1,23 @@
+# Sequencer + Mediator Node
+canton {
+  parameters {
+    non-standard-config = yes
+    alpha-version-support = yes
+  }
+
+  sequencers {
+    sequencer1 {
+      storage.type = {{ canton_sequencer_mediator_storage_type }}
+      public-api { address = "0.0.0.0", port = {{ canton_sequencer_public_api_port }} }
+      admin-api { address = "0.0.0.0", port = {{ canton_sequencer_admin_api_port }} }
+      sequencer.type = {{ canton_sequencer_type }}
+    }
+  }
+
+  mediators {
+    mediator1 {
+      storage.type = {{ canton_sequencer_mediator_storage_type }}
+      admin-api { address = "0.0.0.0", port = {{ canton_mediator_admin_api_port }} }
+    }
+  }
+}

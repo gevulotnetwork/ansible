@@ -1,0 +1,23 @@
+[Unit]
+Description=Canton External Call Mock Service {{ mock_service.name }} ({{ mock_service.description }})
+Documentation=https://docs.daml.com/canton/
+After=network.target
+
+[Service]
+Type=simple
+User={{ canton_user }}
+Group={{ canton_group }}
+WorkingDirectory={{ canton_base_dir }}
+
+ExecStart=/usr/bin/python3 {{ canton_scripts_dir }}/mock_service.py {{ mock_service.port }}
+
+Restart=on-failure
+RestartSec=5
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=canton-{{ mock_service.name }}
+
+[Install]
+WantedBy=canton-distributed.target

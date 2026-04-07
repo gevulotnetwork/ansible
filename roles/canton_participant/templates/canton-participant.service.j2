@@ -1,0 +1,29 @@
+[Unit]
+Description=Canton Participant {{ participant.name }} ({{ participant.description }})
+Documentation=https://docs.daml.com/canton/
+After=network.target canton-sequencer-mediator.service canton-postgres-init.service
+Requires=canton-postgres-init.service
+Wants=canton-sequencer-mediator.service
+PartOf=zenith.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/canton
+
+ExecStart=/usr/bin/java \
+    -Xmx{{ canton_java_xmx }} \
+    -jar %h/canton/lib/canton.jar \
+    daemon \
+    -c %h/canton/configs/{{ participant.config_file }} \
+    --log-file-name=%h/canton/logs/{{ participant.name }}.log
+
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=120
+TimeoutStopSec=30
+
+LimitNOFILE={{ canton_nofile_limit }}
+LimitNPROC={{ canton_nproc_limit }}
+
+[Install]
+WantedBy=zenith.target

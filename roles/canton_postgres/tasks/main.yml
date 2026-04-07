@@ -1,0 +1,42 @@
+- name: Deploy canton-postgres user service
+  ansible.builtin.template:
+    src: canton-postgres.service.j2
+    dest: "{{ canton_systemd_dir }}/canton-postgres.service"
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0644"
+  notify:
+    - reload user systemd
+
+- name: Deploy canton-postgres-init user service
+  ansible.builtin.template:
+    src: canton-postgres-init.service.j2
+    dest: "{{ canton_systemd_dir }}/canton-postgres-init.service"
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0644"
+  notify:
+    - reload user systemd
+
+- name: Reload user systemd daemon
+  become: true
+  become_user: "{{ canton_user }}"
+  ansible.builtin.command:
+    cmd: systemctl --user daemon-reload
+  changed_when: false
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"
+
+- name: Enable canton-postgres services
+  become: true
+  become_user: "{{ canton_user }}"
+  ansible.builtin.command:
+    cmd: "systemctl --user enable {{ item }}"
+  changed_when: false
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"
+  loop:
+    - canton-postgres
+    - canton-postgres-init

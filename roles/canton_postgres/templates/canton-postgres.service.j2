@@ -1,0 +1,25 @@
+[Unit]
+Description=PostgreSQL Database for Canton (Podman)
+Documentation=https://docs.daml.com/canton/
+PartOf=zenith.target
+
+[Service]
+Type=simple
+Restart=on-failure
+RestartSec=5
+
+ExecStartPre=-/usr/bin/podman stop canton-postgres
+ExecStartPre=-/usr/bin/podman rm canton-postgres
+ExecStart=/usr/bin/podman run --name canton-postgres \
+    -e POSTGRES_USER={{ canton_postgres_user }} \
+    -e POSTGRES_PASSWORD={{ canton_postgres_password }} \
+    -p {{ canton_postgres_port }}:5432 \
+    -v canton-postgres-data:/var/lib/postgresql/data \
+    --rm \
+    {{ canton_postgres_image }} \
+    -c max_connections={{ canton_postgres_max_connections }}
+
+ExecStop=/usr/bin/podman stop canton-postgres
+
+[Install]
+WantedBy=zenith.target

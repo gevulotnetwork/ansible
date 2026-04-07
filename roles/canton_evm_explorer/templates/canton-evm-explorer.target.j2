@@ -1,0 +1,8 @@
+[Unit]
+Description=Canton EVM Explorer Stack
+After=zenith.target canton-postgres.service
+Requires=canton-postgres.service
+Wants=canton-evm-explorer-indexer.service canton-evm-explorer.service cloudflared.service
+
+[Install]
+WantedBy=default.target

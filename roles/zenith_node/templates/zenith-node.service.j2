@@ -1,0 +1,33 @@
+[Unit]
+Description="Zenith Node on participant {{ node.id }}"
+After=network.target zenith-relayer-{{ node.id }}.service
+Requires=zenith-relayer-{{ node.id }}.service
+PartOf=zenith.target
+
+[Service]
+Type=simple
+
+Environment=RUST_LOG=info
+ExecStart=%h/zenith/bin/zenith-node \
+	--chain {{ zenith_chain }} \
+	--rpc-addr 0.0.0.0 \
+	--rpc-port {{ node.rpc_port }} \
+	--datadir %h/zenith/data/node-{{ node.id }} \
+	--relayer-addr http://127.0.0.1:{{ node.relayer_authrpc_port }} \
+	--relayer-jwt-path %h/zenith/data/relayer-{{ node.id }}/jwt.hex \
+	--canton-package-name {{ zenith_canton_package_name }} \
+	--canton-module-name {{ zenith_canton_module_name }} \
+	--canton-entity-name {{ zenith_canton_entity_name }} \
+	--canton-endpoint http://{{ node.canton_addr }} \
+	--canton-party-name {{ node.party_name }}
+
+Restart=always
+RestartSec=10
+TimeoutStartSec=120
+TimeoutStopSec=30
+
+LimitNOFILE={{ canton_nofile_limit }}
+LimitNPROC={{ canton_nproc_limit }}
+
+[Install]
+WantedBy=zenith.target

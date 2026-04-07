@@ -1,0 +1,4 @@
+#!/bin/bash
+# Helper script to run Canton with the distribution layout
+DIST_DIR="{{ canton_base_dir }}"
+exec java -jar "$DIST_DIR/lib/canton.jar" "$@"

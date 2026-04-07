@@ -1,0 +1,201 @@
+# Vector configuration for Gevulot node monitoring
+# Mirrors the Alloy setup with additional service metric collection
+
+data_dir = "{{ vector_data_dir }}"
+
+# ─────────────────────────────────────────────────────────
+# SOURCES
+# ─────────────────────────────────────────────────────────
+
+# Vector self-monitoring (equivalent of alloy_check)
+[sources.vector_internal_metrics]
+type = "internal_metrics"
+scrape_interval_secs = 60
+
+# Node metrics (equivalent of prometheus.scrape "node" on :26660)
+[sources.node_metrics]
+type = "prometheus_scrape"
+endpoints = ["http://localhost:26660/metrics"]
+scrape_interval_secs = 60
+
+# Node exporter metrics (prometheus-node-exporter)
+[sources.node_exporter_metrics]
+type = "prometheus_scrape"
+endpoints = ["http://localhost:9100/metrics"]
+scrape_interval_secs = 60
+
+# Nginx stub_status metrics
+[sources.nginx_metrics]
+type = "prometheus_scrape"
+endpoints = ["http://localhost:9113/metrics"]
+scrape_interval_secs = 60
+
+# Caddy metrics (built-in Prometheus endpoint)
+[sources.caddy_metrics]
+type = "prometheus_scrape"
+endpoints = ["http://localhost:2019/metrics"]
+scrape_interval_secs = 60
+
+# TODO: Add this later
+# [sources.podman_metrics]
+# type = "prometheus_scrape"
+# endpoints = ["http://localhost:9882/metrics"]
+# scrape_interval_secs = 60
+
+# Canton service logs (collected per-service from journald)
+{% for svc in canton_services | default([]) %}
+[sources.canton_{{ svc.name | replace('-', '_') }}_logs]
+type = "journald"
+include_units = ["{{ svc.name }}.service"]
+{% endfor %}
+
+# Systemd journal logs (equivalent of loki.source.journal)
+[sources.journald_logs]
+type = "journald"
+include_units = ["*.service"]
+
+# ─────────────────────────────────────────────────────────
+# TRANSFORMS
+# ─────────────────────────────────────────────────────────
+
+# Add labels to node metrics (equivalent of prometheus.relabel "node")
+[transforms.label_node_metrics]
+type = "remap"
+inputs = ["node_metrics"]
+source = '''
+.tags.chain_id = "{{ chain_id }}"
+.tags.network = "{{ network }}"
+.tags.region = "{{ region }}"
+.tags.node_id = "{{ node_id }}"
+.tags.function = "{{ function }}"
+.tags.instance = "{{ fqdn }}"
+'''
+
+# Drop high-cardinality cometbft p2p metrics (equivalent of Alloy cardinality reduction)
+[transforms.filter_node_metrics]
+type = "filter"
+inputs = ["label_node_metrics"]
+condition = '!starts_with(to_string(.name) ?? "", "cometbft_p2p_") || !ends_with(to_string(.name) ?? "", "_bytes_total")'
+
+# Add instance label to node exporter metrics
+[transforms.label_node_exporter_metrics]
+type = "remap"
+inputs = ["node_exporter_metrics"]
+source = '''
+.tags.chain_id = "{{ chain_id }}"
+.tags.network = "{{ network }}"
+.tags.region = "{{ region }}"
+.tags.node_id = "{{ node_id }}"
+.tags.instance = "{{ fqdn }}"
+.tags.job = "node-exporter"
+'''
+
+# Add instance label to nginx metrics
+[transforms.label_nginx_metrics]
+type = "remap"
+inputs = ["nginx_metrics"]
+source = '''
+.tags.chain_id = "{{ chain_id }}"
+.tags.network = "{{ network }}"
+.tags.region = "{{ region }}"
+.tags.instance = "{{ fqdn }}"
+.tags.job = "nginx"
+'''
+
+# Add instance label to caddy metrics
+[transforms.label_caddy_metrics]
+type = "remap"
+inputs = ["caddy_metrics"]
+source = '''
+.tags.chain_id = "{{ chain_id }}"
+.tags.network = "{{ network }}"
+.tags.region = "{{ region }}"
+.tags.instance = "{{ fqdn }}"
+.tags.job = "caddy"
+'''
+
+# Add instance label to Vector internal metrics
+[transforms.label_vector_internal_metrics]
+type = "remap"
+inputs = ["vector_internal_metrics"]
+source = '''
+.tags.instance = "{{ fqdn }}"
+.tags.job = "integrations/vector-check"
+'''
+
+# Filter Vector internal metrics to only keep relevant ones (equivalent of alloy_check relabel)
+[transforms.filter_vector_internal_metrics]
+type = "filter"
+inputs = ["label_vector_internal_metrics"]
+condition = '''
+match(to_string(.name) ?? "", r'^(vector_|component_|buffer_)')
+'''
+
+# Add labels to Canton service logs
+{% for svc in canton_services | default([]) %}
+[transforms.label_canton_{{ svc.name | replace('-', '_') }}_logs]
+type = "remap"
+inputs = ["canton_{{ svc.name | replace('-', '_') }}_logs"]
+source = '''
+.canton_service = "{{ svc.name }}"
+.canton_service_type = "{{ svc.type }}"
+.instance = "{{ fqdn }}"
+.component = "canton"
+.unit = "{{ svc.name }}.service"
+'''
+{% endfor %}
+
+# Add labels to journal logs (equivalent of loki.relabel "journal")
+[transforms.label_journald_logs]
+type = "remap"
+inputs = ["journald_logs"]
+source = '''
+.unit = ._SYSTEMD_UNIT ?? ""
+.instance = "{{ fqdn }}"
+.component = "vector.source.journald"
+'''
+
+# ─────────────────────────────────────────────────────────
+# SINKS
+# ─────────────────────────────────────────────────────────
+
+# Send metrics to Grafana Cloud via Prometheus remote write
+[sinks.grafana_prometheus]
+type = "prometheus_remote_write"
+inputs = [
+  "filter_node_metrics",
+  "label_node_exporter_metrics",
+  "label_nginx_metrics",
+  "label_caddy_metrics",
+  "filter_vector_internal_metrics",
+]
+endpoint = "{{ grafana_vector.metrics_service.url }}"
+
+[sinks.grafana_prometheus.auth]
+strategy = "basic"
+user = "{{ grafana_vector.metrics_service.auth.username }}"
+password = "{{ grafana_vector.metrics_service.auth.password }}"
+
+# Send logs to Grafana Cloud Loki
+[sinks.grafana_loki]
+type = "loki"
+inputs = [
+  "label_journald_logs",
+{% for svc in canton_services | default([]) %}
+  "label_canton_{{ svc.name | replace('-', '_') }}_logs",
+{% endfor %}
+]
+endpoint = "{{ grafana_vector.loki_service.url }}"
+encoding.codec = "json"
+
+[sinks.grafana_loki.auth]
+strategy = "basic"
+user = "{{ grafana_vector.loki_service.auth.username }}"
+password = "{{ grafana_vector.loki_service.auth.password }}"
+
+[sinks.grafana_loki.labels]
+unit = "{{ '{{' }} unit {{ '}}' }}"
+instance = "{{ '{{' }} instance {{ '}}' }}"
+component = "{{ '{{' }} component {{ '}}' }}"
+canton_service = "{{ '{{' }} canton_service {{ '}}' }}"
+canton_service_type = "{{ '{{' }} canton_service_type {{ '}}' }}"

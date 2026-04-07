@@ -1,0 +1,24 @@
+[Unit]
+Description=Cloudflare Tunnel for Canton EVM Explorer (Podman)
+After=canton-evm-explorer.service
+Wants=canton-evm-explorer.service
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=10
+
+ExecStartPre=-/usr/bin/podman stop cloudflared
+ExecStartPre=-/usr/bin/podman rm cloudflared
+
+ExecStart=/usr/bin/podman run \
+    --name cloudflared \
+    --network host \
+    --rm \
+    {{ cloudflared_image }} \
+    tunnel --no-autoupdate run --token {{ cloudflared_tunnel_token }}
+
+ExecStop=/usr/bin/podman stop cloudflared
+
+[Install]
+WantedBy=canton-evm-explorer.target

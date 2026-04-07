@@ -1,0 +1,13 @@
+[Unit]
+Description=Run test Eth transaction periodically
+After=network.target
+
+[Timer]
+OnBootSec={{ ethereum_tx_interval_secs }}s
+OnUnitActiveSec={{ ethereum_tx_interval_secs }}s
+AccuracySec=1ms
+
+Unit=ethereum-example-tx.service
+
+[Install]
+WantedBy=timers.target

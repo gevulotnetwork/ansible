@@ -1,0 +1,91 @@
+---
+# Zenith-Canton deployment playbook
+#
+# Deploys the full Zenith-Canton stack as user-level systemd services.
+#
+# Usage:
+#   ansible-playbook playbooks/canton.yml
+#
+# Service startup order (managed by systemd dependencies):
+#   postgres → postgres-init → sequencer-mediator → participants
+#   → network-setup → deploy-contract → relayers → nodes → ecs
+#   → evm-explorer (indexer + web) → cloudflared
+#
+# Groups:
+#   canton_sequencers   - hosts running the sequencer-mediator
+#   canton_participants - hosts running participants + zenith services
+#   canton_nodes        - parent group (all hosts)
+
+# Base setup on all Canton nodes (user, dirs, JAR, zenith.target)
+- name: Canton base setup
+  hosts: canton_nodes
+  become: true
+  roles:
+    - canton
+
+# PostgreSQL via Podman
+- name: Canton PostgreSQL
+  hosts: canton_nodes
+  become: true
+  roles:
+    - canton_postgres
+
+# Deploy sequencer-mediator
+- name: Canton sequencer-mediator
+  hosts: canton_sequencers
+  become: true
+  roles:
+    - canton_sequencer_mediator
+
+# Deploy participants
+- name: Canton participants
+  hosts: canton_participants
+  become: true
+  roles:
+    - role: canton_participant
+      when: canton_participants | default([]) | length > 0
+
+# Network setup and contract deployment
+- name: Canton network setup and contract deployment
+  hosts: canton_nodes
+  become: true
+  roles:
+    - canton_network_setup
+    - zenith_deploy_contract
+
+# Zenith services (relayers, nodes, ECS)
+- name: Zenith services
+  hosts: canton_participants
+  become: true
+  roles:
+    - role: zenith_relayer
+      when: zenith_relayers | default([]) | length > 0
+    - role: zenith_node
+      when: zenith_nodes | default([]) | length > 0
+    - role: zenith_ecs
+      when: zenith_ecs_servers | default([]) | length > 0
+  post_tasks:
+    - name: Start zenith.target (brings up all zenith services)
+      become_user: "{{ canton_user }}"
+      ansible.builtin.command:
+        cmd: systemctl --user start zenith.target
+      changed_when: false
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+        DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"
+
+
+# EVM Explorer stack
+- name: Canton EVM Explorer
+  hosts: canton_nodes
+  become: true
+  roles:
+    - canton_evm_explorer
+#    - cloudflared
+#
+## Ethereum test transactions (optional)
+#- name: Ethereum test transactions
+#  hosts: canton_nodes
+#  become: true
+#  roles:
+#    - ethereum_example_tx

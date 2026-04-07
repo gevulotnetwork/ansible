@@ -1,0 +1,160 @@
+# ─────────────────────────────────────────────────────────
+# Canton shared defaults (applied to all canton_nodes)
+# ─────────────────────────────────────────────────────────
+# Container registry authentication
+podman_auth_json:
+  auths:
+    ghcr.io:
+      auth: ""
+
+github_pat: ""
+
+canton_version: "3.4.11"
+canton_edition: "open-source"
+canton_java_xmx: 2g
+canton_nofile_limit: 65536
+canton_nproc_limit: 4096
+
+# Shared paths (used across all canton roles)
+canton_user: canton
+canton_group: canton
+canton_user_home: "/home/{{ canton_user }}"
+canton_base_dir: "{{ canton_user_home }}/canton"
+canton_bin_dir: "{{ canton_base_dir }}/bin"
+canton_config_dir: "{{ canton_base_dir }}/configs"
+canton_log_dir: "{{ canton_base_dir }}/logs"
+canton_lib_dir: "{{ canton_base_dir }}/lib"
+canton_dars_dir: "{{ canton_base_dir }}/dars"
+canton_scripts_dir: "{{ canton_base_dir }}/scripts"
+canton_systemd_dir: "{{ canton_user_home }}/.config/systemd/user"
+canton_jar: "{{ canton_lib_dir }}/canton.jar"
+
+# Zenith paths
+zenith_base_dir: "{{ canton_user_home }}/zenith"
+zenith_bin_dir: "{{ zenith_base_dir }}/bin"
+zenith_data_dir: "{{ zenith_base_dir }}/data"
+zenith_etc_dir: "{{ zenith_base_dir }}/etc"
+canton_participant_storage_type: memory
+canton_sequencer_mediator_storage_type: memory
+canton_sequencer_type: BFT
+
+# ─────────────────────────────────────────────────────────
+# Canton participants to deploy
+# ─────────────────────────────────────────────────────────
+canton_participants:
+  - name: participant1
+    description: "Alice - Signatory"
+    config_file: participant1.conf
+    admin_api_port: 5012
+    ledger_api_port: 5011
+    http_ledger_api_port: 5013
+
+  - name: participant2
+    description: "Bob - Signatory"
+    config_file: participant2.conf
+    admin_api_port: 5022
+    ledger_api_port: 5021
+    http_ledger_api_port: 5023
+
+  - name: participant3
+    description: "Charlie - Observer"
+    config_file: participant3.conf
+    admin_api_port: 5032
+    ledger_api_port: 5031
+    http_ledger_api_port: 5033
+
+# ─────────────────────────────────────────────────────────
+# Canton network topology (global view, shared by all hosts)
+#
+# Every host references this to know where other services
+# live (for remote-admin.conf, sequencer URLs, monitoring).
+#
+# address: the IP/hostname services use to reach this node
+#   - use 127.0.0.1 for single-machine deployments
+#   - use real IPs for multi-machine deployments
+# ─────────────────────────────────────────────────────────
+canton_network:
+  sequencer_mediator:
+    host: canton-test-01
+    address: "127.0.0.1"
+    public_api_port: 5008
+    admin_api_port: 5009
+    mediator_admin_api_port: 5007
+
+  participants:
+    participant1:
+      host: canton-test-01
+      address: "127.0.0.1"
+      description: "Alice - Signatory"
+      admin_api_port: 5012
+      ledger_api_port: 5011
+      http_ledger_api_port: 5013
+
+    participant2:
+      host: canton-test-01
+      address: "127.0.0.1"
+      description: "Bob - Signatory"
+      admin_api_port: 5022
+      ledger_api_port: 5021
+      http_ledger_api_port: 5023
+
+    participant3:
+      host: canton-test-01
+      address: "127.0.0.1"
+      description: "Charlie - Observer"
+      admin_api_port: 5032
+      ledger_api_port: 5031
+      http_ledger_api_port: 5033
+
+  mock_services:
+    mock-service-1:
+      host: canton-test-01
+      address: "127.0.0.1"
+      description: "Participant 1 (Alice)"
+      port: 8080
+
+    mock-service-2:
+      host: canton-test-01
+      address: "127.0.0.1"
+      description: "Participant 2 (Bob)"
+      port: 8081
+
+# ─────────────────────────────────────────────────────────
+# Zenith services to deploy (relayers, nodes, ECS)
+# ─────────────────────────────────────────────────────────
+zenith_relayers:
+  - id: 1
+    canton_addr: "127.0.0.1:5011"
+    party_name: Validator1
+    p2p_port: 30303
+    http_port: 8545
+    authrpc_port: 8551
+
+  - id: 2
+    canton_addr: "127.0.0.1:5021"
+    party_name: Validator2
+    p2p_port: 30304
+    http_port: 8546
+    authrpc_port: 8552
+
+zenith_nodes:
+  - id: 1
+    canton_addr: "127.0.0.1:5011"
+    party_name: Validator1
+    rpc_port: 32998
+    relayer_authrpc_port: 8551
+
+  - id: 2
+    canton_addr: "127.0.0.1:5021"
+    party_name: Validator2
+    rpc_port: 32999
+    relayer_authrpc_port: 8552
+
+zenith_ecs_servers:
+  - id: 1
+    port: 1606
+    node_rpc_port: 32998
+
+  - id: 2
+    port: 1607
+    node_rpc_port: 32999

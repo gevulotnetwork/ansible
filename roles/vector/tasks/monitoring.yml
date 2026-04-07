@@ -1,0 +1,17 @@
+- debug:
+    msg: "Copying config file: {{ vector_base_dir }}/vector.toml"
+
+- name: Ensure Vector data directory exists
+  file:
+    path: "{{ vector_data_dir }}"
+    state: directory
+    owner: vector
+    group: vector
+    mode: "0755"
+
+- name: Copy config file
+  template:
+    src: "vector.toml.j2"
+    dest: "{{ vector_base_dir }}/vector.toml"
+  notify:
+    - restart vector

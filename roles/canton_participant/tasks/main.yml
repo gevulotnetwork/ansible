@@ -1,0 +1,44 @@
+- name: Deploy participant configuration files
+  ansible.builtin.template:
+    src: participant.conf.j2
+    dest: "{{ canton_config_dir }}/{{ participant.config_file }}"
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0644"
+  loop: "{{ canton_participants }}"
+  loop_control:
+    loop_var: participant
+
+- name: Deploy canton-participant user services
+  ansible.builtin.template:
+    src: canton-participant.service.j2
+    dest: "{{ canton_systemd_dir }}/canton-{{ participant.name }}.service"
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0644"
+  loop: "{{ canton_participants }}"
+  loop_control:
+    loop_var: participant
+  notify:
+    - reload user systemd
+
+- name: Reload user systemd daemon
+  become: true
+  become_user: "{{ canton_user }}"
+  ansible.builtin.command:
+    cmd: systemctl --user daemon-reload
+  changed_when: false
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"
+
+- name: Enable canton-participant services
+  become: true
+  become_user: "{{ canton_user }}"
+  ansible.builtin.command:
+    cmd: "systemctl --user enable canton-{{ item.name }}"
+  changed_when: false
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"
+  loop: "{{ canton_participants }}"

@@ -1,0 +1,53 @@
+- name: Deploy canton-evm-explorer target
+  ansible.builtin.template:
+    src: canton-evm-explorer.target.j2
+    dest: "{{ canton_systemd_dir }}/canton-evm-explorer.target"
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0644"
+  notify:
+    - reload user systemd
+
+- name: Deploy canton-evm-explorer-indexer user service
+  ansible.builtin.template:
+    src: canton-evm-explorer-indexer.service.j2
+    dest: "{{ canton_systemd_dir }}/canton-evm-explorer-indexer.service"
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0644"
+  notify:
+    - reload user systemd
+
+- name: Deploy canton-evm-explorer user service
+  ansible.builtin.template:
+    src: canton-evm-explorer.service.j2
+    dest: "{{ canton_systemd_dir }}/canton-evm-explorer.service"
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0644"
+  notify:
+    - reload user systemd
+
+- name: Reload user systemd daemon
+  become: true
+  become_user: "{{ canton_user }}"
+  ansible.builtin.command:
+    cmd: systemctl --user daemon-reload
+  changed_when: false
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"
+
+- name: Enable canton-evm-explorer services
+  become: true
+  become_user: "{{ canton_user }}"
+  ansible.builtin.command:
+    cmd: "systemctl --user enable {{ item }}"
+  changed_when: false
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"
+  loop:
+    - canton-evm-explorer.target
+    - canton-evm-explorer-indexer
+    - canton-evm-explorer

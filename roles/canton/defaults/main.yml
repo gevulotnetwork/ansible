@@ -1,0 +1,30 @@
+canton_version: "3.4.11"
+canton_edition: "open-source"
+canton_release_url: "https://github.com/digital-asset/canton/releases/download/v{{ canton_version }}/canton-{{ canton_edition }}-{{ canton_version }}.tar.gz"
+canton_archive_name: "canton-{{ canton_edition }}-{{ canton_version }}"
+
+canton_user: canton
+canton_group: canton
+canton_user_home: "/home/{{ canton_user }}"
+canton_base_dir: "{{ canton_user_home }}/canton"
+canton_bin_dir: "{{ canton_base_dir }}/bin"
+canton_config_dir: "{{ canton_base_dir }}/configs"
+canton_log_dir: "{{ canton_base_dir }}/logs"
+canton_lib_dir: "{{ canton_base_dir }}/lib"
+canton_dars_dir: "{{ canton_base_dir }}/dars"
+canton_scripts_dir: "{{ canton_base_dir }}/scripts"
+canton_systemd_dir: "{{ canton_user_home }}/.config/systemd/user"
+canton_jar: "{{ canton_lib_dir }}/canton.jar"
+canton_java_xmx: 2g
+canton_nofile_limit: 65536
+canton_nproc_limit: 4096
+
+# Zenith
+zenith_relayer_version: "0.1.0"
+zenith_node_version: "0.1.0"
+zenith_ecs_version: "0.1.0"
+zenith_arch: "x86_64-unknown-linux-musl"
+zenith_base_dir: "{{ canton_user_home }}/zenith"
+zenith_bin_dir: "{{ zenith_base_dir }}/bin"
+zenith_data_dir: "{{ zenith_base_dir }}/data"
+zenith_etc_dir: "{{ zenith_base_dir }}/etc"
