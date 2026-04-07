@@ -1,0 +1,38 @@
+[Unit]
+Description="Zenith Relayer on participant {{ relayer.id }}"
+After=network.target zenith-deploy-contract.service
+Requires=zenith-deploy-contract.service
+PartOf=zenith.target
+
+[Service]
+Type=notify
+WorkingDirectory=%h/zenith
+
+ExecStart=%h/zenith/bin/zenith-relayer node \
+	--canton-jwt {{ zenith_canton_jwt }} \
+	--canton-addr http://{{ relayer.canton_addr }} \
+	--canton-package-name {{ zenith_canton_package_name }} \
+	--canton-module-name {{ zenith_canton_module_name }} \
+	--canton-entity-name {{ zenith_canton_entity_name }} \
+	--canton-party-name {{ relayer.party_name }} \
+	--chain {{ zenith_chain }} \
+	--disable-discovery \
+	--port {{ relayer.p2p_port }} \
+	--http \
+	--http.addr 0.0.0.0 \
+	--http.port {{ relayer.http_port }} \
+	--http.corsdomain "*" \
+	--authrpc.addr 0.0.0.0 \
+	--authrpc.port {{ relayer.authrpc_port }} \
+	--datadir %h/zenith/data/relayer-{{ relayer.id }}
+
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=120
+TimeoutStopSec=30
+
+LimitNOFILE={{ canton_nofile_limit }}
+LimitNPROC={{ canton_nproc_limit }}
+
+[Install]
+WantedBy=zenith.target

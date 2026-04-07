@@ -1,0 +1,29 @@
+- name: Deploy ethereum-example-tx user service
+  ansible.builtin.template:
+    src: ethereum-example-tx.service.j2
+    dest: "{{ canton_systemd_dir }}/ethereum-example-tx.service"
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0644"
+  notify:
+    - reload user systemd
+
+- name: Deploy ethereum-example-tx timer
+  ansible.builtin.template:
+    src: ethereum-example-tx.timer.j2
+    dest: "{{ canton_systemd_dir }}/ethereum-example-tx.timer"
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0644"
+  notify:
+    - reload user systemd
+
+- name: Enable ethereum-example-tx timer
+  become: true
+  become_user: "{{ canton_user }}"
+  ansible.builtin.systemd_service:
+    name: ethereum-example-tx.timer
+    enabled: true
+    scope: user
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"

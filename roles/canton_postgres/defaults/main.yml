@@ -1,0 +1,12 @@
+canton_postgres_user: canton
+canton_postgres_password: canton
+canton_postgres_port: 5432
+canton_postgres_image: "docker.io/postgres:15"
+canton_postgres_max_connections: 300
+canton_postgres_databases:
+  - sequencer1
+  - mediator1
+  - participant1
+  - participant2
+  - participant3
+  - canton_evm_explorer

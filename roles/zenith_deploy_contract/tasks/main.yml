@@ -1,0 +1,29 @@
+- name: Deploy zenith-deploy-contract user service
+  ansible.builtin.template:
+    src: zenith-deploy-contract.service.j2
+    dest: "{{ canton_systemd_dir }}/zenith-deploy-contract.service"
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0644"
+  notify:
+    - reload user systemd
+
+- name: Reload user systemd daemon
+  become: true
+  become_user: "{{ canton_user }}"
+  ansible.builtin.command:
+    cmd: systemctl --user daemon-reload
+  changed_when: false
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"
+
+- name: Enable zenith-deploy-contract service
+  become: true
+  become_user: "{{ canton_user }}"
+  ansible.builtin.command:
+    cmd: systemctl --user enable zenith-deploy-contract
+  changed_when: false
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"

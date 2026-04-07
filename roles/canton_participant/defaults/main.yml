@@ -1,0 +1,5 @@
+# canton_participants is defined in inventory group_vars
+# Each entry has: name, description, config_file, admin_api_port, ledger_api_port,
+#   http_ledger_api_port, and optionally extension and mock_service
+canton_participants: []
+canton_participant_storage_type: memory

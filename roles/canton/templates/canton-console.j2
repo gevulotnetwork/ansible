@@ -1,0 +1,6 @@
+#!/bin/bash
+# Start Canton console connected to all nodes
+DIST_DIR="{{ canton_base_dir }}"
+exec java -jar "$DIST_DIR/lib/canton.jar" \
+    -c "$DIST_DIR/configs/remote-admin.conf" \
+    --no-tty

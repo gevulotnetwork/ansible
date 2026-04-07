@@ -1,0 +1,23 @@
+[Unit]
+Description=Zenith-Canton Demo (all services)
+
+Wants=canton-postgres.service
+Wants=canton-postgres-init.service
+Wants=canton-sequencer-mediator.service
+{% for p in canton_participants | default([]) %}
+Wants=canton-{{ p.name }}.service
+{% endfor %}
+Wants=canton-network-setup.service
+Wants=zenith-deploy-contract.service
+{% for r in zenith_relayers | default([]) %}
+Wants=zenith-relayer-{{ r.id }}.service
+{% endfor %}
+{% for n in zenith_nodes | default([]) %}
+Wants=zenith-node-{{ n.id }}.service
+{% endfor %}
+{% for e in zenith_ecs_servers | default([]) %}
+Wants=zenith-ecs-{{ e.id }}.service
+{% endfor %}
+
+[Install]
+WantedBy=default.target

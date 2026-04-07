@@ -1,0 +1,19 @@
+- name: Deploy cloudflared user service
+  ansible.builtin.template:
+    src: cloudflared.service.j2
+    dest: "{{ canton_systemd_dir }}/cloudflared.service"
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0644"
+  notify:
+    - reload user systemd
+
+- name: Enable cloudflared service
+  become: true
+  become_user: "{{ canton_user }}"
+  ansible.builtin.systemd_service:
+    name: cloudflared
+    enabled: true
+    scope: user
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"

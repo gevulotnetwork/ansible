@@ -1,0 +1,23 @@
+[Unit]
+Description=Vector observability data pipeline
+Documentation=https://vector.dev/docs/
+After=network-online.target
+Requires=network-online.target
+
+[Service]
+Type=simple
+User=vector
+Group=vector
+ExecStartPre=/usr/bin/vector validate --config-toml {{ vector_base_dir }}/vector.toml
+ExecStart=/usr/bin/vector --config-toml {{ vector_base_dir }}/vector.toml
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=vector
+
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,29 @@
+# Remote administration config for connecting to all nodes
+canton {
+  parameters {
+    non-standard-config = yes
+    alpha-version-support = yes
+  }
+
+  remote-sequencers {
+    sequencer1 {
+      public-api { address = "{{ canton_network.sequencer_mediator.address }}", port = {{ canton_network.sequencer_mediator.public_api_port }} }
+      admin-api { address = "{{ canton_network.sequencer_mediator.address }}", port = {{ canton_network.sequencer_mediator.admin_api_port }} }
+    }
+  }
+
+  remote-mediators {
+    mediator1 {
+      admin-api { address = "{{ canton_network.sequencer_mediator.address }}", port = {{ canton_network.sequencer_mediator.mediator_admin_api_port }} }
+    }
+  }
+
+  remote-participants {
+{% for pname, p in canton_network.participants.items() %}
+    {{ pname }} {
+      ledger-api { address = "{{ p.address }}", port = {{ p.ledger_api_port }} }
+      admin-api { address = "{{ p.address }}", port = {{ p.admin_api_port }} }
+    }
+{% endfor %}
+  }
+}

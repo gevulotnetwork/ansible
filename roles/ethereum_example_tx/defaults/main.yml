@@ -1,0 +1,6 @@
+ethereum_rpc_url: "http://127.0.0.1:8545"
+ethereum_mnemonic: "test test test test test test test test test test test junk"
+ethereum_deriv_path: "m/44'/60'/0'/0/0"
+ethereum_tx_recipient: "0xC4d5B726a9d607a3CcB515b6C77517E5045E02C1"
+ethereum_tx_amount: "0.0001"
+ethereum_tx_interval_secs: 12

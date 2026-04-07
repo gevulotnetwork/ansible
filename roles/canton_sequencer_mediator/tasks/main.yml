@@ -1,0 +1,40 @@
+- name: Deploy sequencer-mediator configuration
+  ansible.builtin.template:
+    src: sequencer-mediator.conf.j2
+    dest: "{{ canton_config_dir }}/{{ canton_sequencer_mediator_config }}"
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0644"
+  notify:
+    - restart canton-sequencer-mediator
+
+- name: Deploy canton-sequencer-mediator user service
+  ansible.builtin.template:
+    src: canton-sequencer-mediator.service.j2
+    dest: "{{ canton_systemd_dir }}/canton-sequencer-mediator.service"
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0644"
+  notify:
+    - reload user systemd
+    - restart canton-sequencer-mediator
+
+- name: Reload user systemd daemon
+  become: true
+  become_user: "{{ canton_user }}"
+  ansible.builtin.command:
+    cmd: systemctl --user daemon-reload
+  changed_when: false
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"
+
+- name: Enable canton-sequencer-mediator service
+  become: true
+  become_user: "{{ canton_user }}"
+  ansible.builtin.command:
+    cmd: systemctl --user enable canton-sequencer-mediator
+  changed_when: false
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"

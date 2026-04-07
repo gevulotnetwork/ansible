@@ -1,0 +1,12 @@
+galaxy_info:
+  author: bhechinger
+  description: Canton base setup - user, directories, JAR, and distributed target
+  company: Gevulot
+  license: GPL-2.0-or-later
+  min_ansible_version: "2.15"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - noble
+
+dependencies: []

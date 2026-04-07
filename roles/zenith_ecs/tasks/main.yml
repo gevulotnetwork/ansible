@@ -1,0 +1,35 @@
+- name: Deploy zenith-ecs user services
+  ansible.builtin.template:
+    src: zenith-ecs.service.j2
+    dest: "{{ canton_systemd_dir }}/zenith-ecs-{{ ecs.id }}.service"
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0644"
+  loop: "{{ zenith_ecs_servers }}"
+  loop_control:
+    loop_var: ecs
+  notify:
+    - reload user systemd
+
+- name: Reload user systemd daemon
+  become: true
+  become_user: "{{ canton_user }}"
+  ansible.builtin.command:
+    cmd: systemctl --user daemon-reload
+  changed_when: false
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"
+
+- name: Enable zenith-ecs services
+  become: true
+  become_user: "{{ canton_user }}"
+  ansible.builtin.command:
+    cmd: "systemctl --user enable zenith-ecs-{{ ecs.id }}.service"
+  changed_when: false
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"
+  loop: "{{ zenith_ecs_servers }}"
+  loop_control:
+    loop_var: ecs

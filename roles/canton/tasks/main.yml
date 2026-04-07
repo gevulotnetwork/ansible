@@ -1,0 +1,147 @@
+- name: Install required packages
+  ansible.builtin.package:
+    name:
+      - "{{ canton_java_package | default('default-jre-headless') }}"
+      - podman
+      - dbus-user-session
+    state: present
+
+- name: Check if Canton user exists
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ canton_user }}"
+  register: canton_user_check
+  failed_when: false
+
+- name: Create Canton group
+  ansible.builtin.group:
+    name: "{{ canton_group }}"
+    state: present
+
+- name: Create or update Canton user
+  ansible.builtin.user:
+    name: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    home: "{{ canton_user_home }}"
+    shell: /bin/bash
+    system: false
+    create_home: true
+
+- name: Get Canton user UID
+  ansible.builtin.command:
+    cmd: "id -u {{ canton_user }}"
+  register: canton_uid
+  changed_when: false
+
+- name: Enable lingering for Canton user
+  ansible.builtin.command:
+    cmd: "loginctl enable-linger {{ canton_user }}"
+  changed_when: false
+
+- name: Wait for user D-Bus socket
+  ansible.builtin.wait_for:
+    path: "/run/user/{{ canton_uid.stdout }}/bus"
+    timeout: 15
+
+- name: Create Canton directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0755"
+  loop:
+    - "{{ canton_base_dir }}"
+    - "{{ canton_bin_dir }}"
+    - "{{ canton_config_dir }}"
+    - "{{ canton_log_dir }}"
+    - "{{ canton_lib_dir }}"
+    - "{{ canton_dars_dir }}"
+    - "{{ canton_scripts_dir }}"
+    - "{{ canton_systemd_dir }}"
+    - "{{ zenith_base_dir }}"
+    - "{{ zenith_bin_dir }}"
+    - "{{ zenith_data_dir }}"
+    - "{{ zenith_etc_dir }}"
+
+- name: Create Podman config directory
+  ansible.builtin.file:
+    path: "{{ canton_user_home }}/.config/containers"
+    state: directory
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0700"
+
+- name: Deploy container registry auth
+  ansible.builtin.copy:
+    content: "{{ podman_auth_json | to_nice_json }}"
+    dest: "{{ canton_user_home }}/.config/containers/auth.json"
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0600"
+  when: podman_auth_json is defined
+
+- include_tasks: install.yml
+- include_tasks: install_zenith.yml
+
+- name: Deploy zenith.target
+  ansible.builtin.template:
+    src: zenith.target.j2
+    dest: "{{ canton_systemd_dir }}/zenith.target"
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0644"
+  notify:
+    - reload user systemd
+
+- name: Reload and enable zenith.target
+  become: true
+  become_user: "{{ canton_user }}"
+  ansible.builtin.command:
+    cmd: systemctl --user daemon-reload
+  changed_when: false
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"
+
+- name: Enable zenith.target
+  become: true
+  become_user: "{{ canton_user }}"
+  ansible.builtin.command:
+    cmd: systemctl --user enable zenith.target
+  changed_when: false
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"
+
+- name: Deploy remote-admin configuration
+  ansible.builtin.template:
+    src: remote-admin.conf.j2
+    dest: "{{ canton_config_dir }}/remote-admin.conf"
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0644"
+
+- name: Deploy Canton bin scripts
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "{{ canton_bin_dir }}/{{ item }}"
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0755"
+  loop:
+    - canton-console
+    - canton-run
+    - run-test
+    - setup-network
+
+- name: Deploy Canton scripts
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ canton_scripts_dir }}/{{ item }}"
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0644"
+  loop:
+    - setup-distributed.canton
+    - test-distributed.canton

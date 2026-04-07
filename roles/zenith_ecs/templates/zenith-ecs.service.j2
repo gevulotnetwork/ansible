@@ -1,0 +1,26 @@
+[Unit]
+Description="Zenith External Call Server (participant {{ ecs.id }})"
+After=network.target zenith-node-{{ ecs.id }}.service
+Requires=zenith-node-{{ ecs.id }}.service
+PartOf=zenith.target
+
+[Service]
+Type=simple
+
+Environment=RUST_LOG=info
+ExecStart=%h/zenith/bin/zenith-ecs server \
+    --config %h/zenith/etc/ecs{{ ecs.id }}.toml \
+    --host 0.0.0.0 \
+    --port {{ ecs.port }} \
+    --block-builder-addr http://127.0.0.1:{{ ecs.node_rpc_port }}
+
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=120
+TimeoutStopSec=30
+
+LimitNOFILE={{ canton_nofile_limit }}
+LimitNPROC={{ canton_nproc_limit }}
+
+[Install]
+WantedBy=zenith.target

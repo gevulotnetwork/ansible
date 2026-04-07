@@ -1,0 +1,6 @@
+#!/bin/bash
+# Run the test script
+DIST_DIR="{{ canton_base_dir }}"
+exec java -jar "$DIST_DIR/lib/canton.jar" run \
+    -c "$DIST_DIR/configs/remote-admin.conf" \
+    "$DIST_DIR/scripts/test-distributed.canton"

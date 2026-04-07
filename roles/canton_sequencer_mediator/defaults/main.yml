@@ -1,0 +1,6 @@
+canton_sequencer_mediator_config: sequencer-mediator.conf
+canton_sequencer_mediator_storage_type: memory
+canton_sequencer_type: BFT
+canton_sequencer_public_api_port: 5008
+canton_sequencer_admin_api_port: 5009
+canton_mediator_admin_api_port: 5007

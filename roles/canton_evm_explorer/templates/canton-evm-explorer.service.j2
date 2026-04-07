@@ -1,0 +1,29 @@
+[Unit]
+Description=Canton EVM Explorer Web UI (Podman)
+After=canton-postgres.service canton-evm-explorer-indexer.service
+Requires=canton-postgres.service
+Wants=canton-evm-explorer-indexer.service
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=10
+
+ExecStartPre=-/usr/bin/podman stop canton-evm-explorer
+ExecStartPre=-/usr/bin/podman rm canton-evm-explorer
+
+ExecStart=/usr/bin/podman run \
+    --name canton-evm-explorer \
+    --network host \
+    -e DATABASE_URL={{ canton_evm_explorer_db_url }} \
+    -e CANTON_HTTP_API_URL={{ canton_evm_explorer_canton_http_api_url }} \
+    -e EVM_RPC_URL={{ canton_evm_explorer_evm_rpc_url }} \
+    -e EXTERNAL_CALL_SERVER_URL={{ canton_evm_explorer_ecs_url }} \
+    -e PORT={{ canton_evm_explorer_port }} \
+    --rm \
+    {{ canton_evm_explorer_image }}
+
+ExecStop=/usr/bin/podman stop canton-evm-explorer
+
+[Install]
+WantedBy=canton-evm-explorer.target

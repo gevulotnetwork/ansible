@@ -1,0 +1,11 @@
+[Unit]
+Description=Run a single Ethereum transaction as test
+
+[Service]
+Type=oneshot
+
+Environment="ETHEREUM_JSONRPC_HTTP_URL={{ ethereum_rpc_url }}"
+Environment="ETHEREUM_MNEMONIC={{ ethereum_mnemonic }}"
+Environment="ETHEREUM_DERIV_PATH={{ ethereum_deriv_path }}"
+
+ExecStart=%h/zenith/bin/transfer-eth -m "{{ ethereum_mnemonic }}" -d "{{ ethereum_deriv_path }}" {{ ethereum_tx_recipient }} {{ ethereum_tx_amount }}

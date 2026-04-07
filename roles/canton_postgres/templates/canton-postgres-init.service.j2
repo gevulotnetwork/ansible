@@ -1,0 +1,23 @@
+[Unit]
+Description=Initialize Canton PostgreSQL Databases
+Documentation=https://docs.daml.com/canton/
+After=canton-postgres.service
+Requires=canton-postgres.service
+PartOf=zenith.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+ExecStart=/bin/bash -c '\
+  for i in {1..30}; do \
+    podman exec canton-postgres pg_isready -U {{ canton_postgres_user }} && break; \
+    sleep 1; \
+  done && \
+{% for db in canton_postgres_databases %}
+  podman exec canton-postgres psql -U {{ canton_postgres_user }} -c "CREATE DATABASE {{ db }};" 2>/dev/null || true{{ ";" if not loop.last else "" }} \
+{% endfor %}
+'
+
+[Install]
+WantedBy=zenith.target

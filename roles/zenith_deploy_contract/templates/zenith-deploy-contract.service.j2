@@ -1,0 +1,13 @@
+[Unit]
+Description="Deploy Zenith contract on Canton"
+Requires=canton-network-setup.service
+After=canton-network-setup.service
+PartOf=zenith.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/canton/bin/deploy-contract
+RemainAfterExit=yes
+
+[Install]
+WantedBy=zenith.target

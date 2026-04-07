@@ -1,0 +1,34 @@
+- name: Add Vector apt repo (Datadog)
+  ansible.builtin.deb822_repository:
+    name: vector
+    types: deb
+    uris: https://apt.vector.dev
+    suites: stable
+    components: universe
+    architectures: amd64
+    signed_by: https://keys.datadoghq.com/DATADOG_APT_KEY_CURRENT.public
+
+- name: Update cache
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Install Vector
+  package:
+    name:
+      - vector
+    state: latest
+
+- name: Deploy Vector systemd service
+  ansible.builtin.template:
+    src: vector.service.j2
+    dest: /etc/systemd/system/vector.service
+    mode: "0644"
+  notify:
+    - reload systemd
+    - restart vector
+
+- name: Enable and start Vector service
+  ansible.builtin.systemd_service:
+    name: vector
+    enabled: true
+    state: started
