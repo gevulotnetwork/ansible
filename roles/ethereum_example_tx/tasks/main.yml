@@ -6,7 +6,7 @@
     group: "{{ canton_group }}"
     mode: "0644"
   notify:
-    - reload user systemd
+    - Reload user systemd
 
 - name: Deploy ethereum-example-tx timer
   ansible.builtin.template:
@@ -16,7 +16,7 @@
     group: "{{ canton_group }}"
     mode: "0644"
   notify:
-    - reload user systemd
+    - Reload user systemd
 
 - name: Enable ethereum-example-tx timer
   become: true

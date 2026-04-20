@@ -6,7 +6,7 @@
     group: "{{ canton_group }}"
     mode: "0644"
   notify:
-    - reload user systemd
+    - Reload user systemd
 
 - name: Deploy canton-postgres-init user service
   ansible.builtin.template:
@@ -17,13 +17,14 @@
     mode: "0644"
   register: postgres_init_unit
   notify:
-    - reload user systemd
+    - Reload user systemd
 
-- name: Re-run postgres-init if database list changed
+- name: Re-run postgres-init if database list changed # noqa: no-handler
   become: true
   become_user: "{{ canton_user }}"
   ansible.builtin.command:
     cmd: systemctl --user restart canton-postgres-init.service
+  changed_when: true
   environment:
     XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
     DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"

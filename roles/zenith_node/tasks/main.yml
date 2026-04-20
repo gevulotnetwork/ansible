@@ -9,7 +9,7 @@
   loop_control:
     loop_var: node
   notify:
-    - reload user systemd
+    - Reload user systemd
 
 - name: Reload user systemd daemon
   become: true
@@ -39,6 +39,7 @@
   become_user: "{{ canton_user }}"
   ansible.builtin.command:
     cmd: "systemctl --user restart zenith-node-{{ node.id }}.service"
+  changed_when: true
   when: zenith_binaries_changed | default(false)
   environment:
     XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"

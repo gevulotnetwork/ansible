@@ -1,6 +1,4 @@
-- hosts: localhost
-  tasks:
-    - name: Check if config file has been deployed
-      stat:
-        path: "{{ zenith_base_dir }}/config/config.toml"
-      register: zenith_config_file
+- name: Check if config file has been deployed
+  ansible.builtin.stat:
+    path: "{{ zenith_base_dir }}/config/config.toml"
+  register: zenith_config_file

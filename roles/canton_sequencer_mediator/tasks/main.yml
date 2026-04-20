@@ -6,7 +6,7 @@
     group: "{{ canton_group }}"
     mode: "0644"
   notify:
-    - restart canton-sequencer-mediator
+    - Restart canton-sequencer-mediator
 
 - name: Deploy canton-sequencer-mediator user service
   ansible.builtin.template:
@@ -16,8 +16,8 @@
     group: "{{ canton_group }}"
     mode: "0644"
   notify:
-    - reload user systemd
-    - restart canton-sequencer-mediator
+    - Reload user systemd
+    - Restart canton-sequencer-mediator
 
 - name: Reload user systemd daemon
   become: true
@@ -44,6 +44,7 @@
   become_user: "{{ canton_user }}"
   ansible.builtin.command:
     cmd: systemctl --user restart canton-sequencer-mediator.service
+  changed_when: true
   when: canton_jar_changed | default(false)
   environment:
     XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"

@@ -8,21 +8,22 @@
     shell: /bin/bash
 
 - name: Check if user is lingering
-  stat:
+  ansible.builtin.stat:
     path: "/var/lib/systemd/linger/{{ user.name }}"
   register: user_lingering
 
 - name: Enable lingering if needed
-  command: "loginctl enable-linger {{ user.name }}"
+  ansible.builtin.command: "loginctl enable-linger {{ user.name }}"
   when: not user_lingering.stat.exists
+  changed_when: false
 
 - name: Set users
-  set_fact:
+  ansible.builtin.set_fact:
     subid_users:
       - "{{ user.name }}"
 
 - name: Generate subuids & subgids
-  include_role:
+  ansible.builtin.include_role:
     name: subuid_subgid
 
 - name: Make sure paths exists
@@ -37,7 +38,7 @@
     - "/run/user/{{ user.uid }}/containers"
 
 - name: Allow root to manage user's dbus service (for systemd)
-  copy:
+  ansible.builtin.copy:
     content: |
       <busconfig>
         <policy context="mandatory">
@@ -49,14 +50,14 @@
     owner: root
     group: root
 
-#- name: Get auth file contents
-#  set_fact:
-#    podman_auth: "{{ lookup('google.cloud.gcp_secret_manager', key='quay-docker-credentials', auth_kind='application', project=gcp_project_name) }}"
+# - name: Get auth file contents
+#   set_fact:
+#     podman_auth: "{{ lookup('google.cloud.gcp_secret_manager', key='quay-docker-credentials', auth_kind='application', project=gcp_project_name) }}"
 #
-#- name: Copy auth file for podman
-#  ansible.builtin.copy:
-#    content: "{{ podman_auth | to_nice_json }}"
-#    dest: "/run/user/{{ user.uid }}/containers/auth.json"
-#    mode: "600"
-#    owner: "{{ user.name }}"
-#    group: "{{ user.name }}"
+# - name: Copy auth file for podman
+#   ansible.builtin.copy:
+#     content: "{{ podman_auth | to_nice_json }}"
+#     dest: "/run/user/{{ user.uid }}/containers/auth.json"
+#     mode: "600"
+#     owner: "{{ user.name }}"
+#     group: "{{ user.name }}"

@@ -1,8 +1,9 @@
 ---
-- import_tasks: ssl.yml
+- name: Import SSL tasks
+  ansible.builtin.import_tasks: ssl.yml
 
 - name: Set nginx config
-  set_fact:
+  ansible.builtin.set_fact:
     nginx_modules:
       - http_ssl_module
       - ngx_http_v2_module
@@ -47,7 +48,7 @@
                 listen:
                   - port: 9443
                     ssl: true
-                    #quic: true
+                    # quic: true
                 server_name: _
               log:
                 access:
@@ -85,7 +86,7 @@
                 listen:
                   - port: 9317
                     ssl: true
-                    #quic: true
+                    # quic: true
                 server_name: _
               log:
                 access:
@@ -127,7 +128,7 @@
                 listen:
                   - port: 5002
                     ssl: true
-                    #quic: true
+                    # quic: true
                 server_name: _
                 client_max_body_size: 100g
               log:
@@ -178,10 +179,10 @@
 
 - name: Setup nginx
   become: true
-  import_role:
+  ansible.builtin.import_role:
     name: nginxinc.nginx
 
 - name: Setup nginx config
   become: true
-  import_role:
+  ansible.builtin.import_role:
     name: nginxinc.nginx_config

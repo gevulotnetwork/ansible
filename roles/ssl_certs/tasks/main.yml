@@ -1,5 +1,6 @@
 ---
-- block:
+- name: Manage SSL certificates
+  block:
     - name: Create private key
       community.crypto.openssl_privatekey:
         path: "{{ ssl_key_path }}"

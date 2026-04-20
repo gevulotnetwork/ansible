@@ -1,14 +1,15 @@
 - name: Debug input variables
-  debug:
+  ansible.builtin.debug:
     var: github_pat
 
 - name: Make sure binaries destination exists
-  file:
+  ansible.builtin.file:
     path: "{{ binary_destination }}"
     state: directory
+    mode: "0755"
 
 - name: "Download infra-tools binaries"
-  include_tasks: download.yml
+  ansible.builtin.include_tasks: download.yml
   loop: "{{ binaries }}"
   loop_control:
     loop_var: binary
@@ -30,9 +31,10 @@
       description: "deployd service"
       binary: "/opt/bin/deployd"
       rust_log: "debug"
-  template:
+  ansible.builtin.template:
     src: templates/service.j2
     dest: /lib/systemd/system/deployd.service
+    mode: "0644"
 
 - name: Enable deployd systemd unit
   ansible.builtin.systemd_service:

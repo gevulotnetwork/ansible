@@ -1,18 +1,18 @@
 - name: Install python-debian
-  package:
+  ansible.builtin.package:
     name: python-debian
-    state: latest
+    state: present
 
 - name: Add repo grafana
-  yum_repository:
+  ansible.builtin.yum_repository:
     name: grafana
     description: Grafana Repo
     baseurl: https://rpm.grafana.com
-    gpgcheck: yes
+    gpgcheck: true
     gpgkey: https://rpm.grafana.com/gpg.key
 
 - name: Install base software packages
-  package:
+  ansible.builtin.package:
     name:
       - curl
       - git
@@ -24,4 +24,4 @@
       - rsync
       - node-exporter
       - alloy
-    state: latest
+    state: present

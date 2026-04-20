@@ -10,11 +10,13 @@
   register: "_gh_release"
   ignore_errors: true
 
-- debug:
+- name: Show release info
+  ansible.builtin.debug:
     var: _gh_release
   when: _gh_release is failed
 
-- fail:
+- name: Fail if release info unavailable
+  ansible.builtin.fail:
     msg: "Getting release info failed"
   when: _gh_release is failed
 

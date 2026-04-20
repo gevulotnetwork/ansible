@@ -25,10 +25,10 @@
 - name: Update all Debian/Ubuntu packages to their latest version
   ansible.builtin.apt:
     name: "*"
-    state: latest
+    state: present
 
 - name: Install base software packages
-  package:
+  ansible.builtin.package:
     name:
       - curl
       - git
@@ -51,7 +51,7 @@
       - python3-firewall
       - python3-virtualenv
       - caddy
-    state: latest
+    state: present
 
 - name: Run autoremove
   ansible.builtin.apt:
@@ -62,12 +62,13 @@
     requirements:
       - ansible
       - python-debian
-  template:
+  ansible.builtin.template:
     src: requirements.txt.j2
     dest: /root/requirements.txt
+    mode: "0644"
 
 - name: Install ansible in a venv
-  pip:
+  ansible.builtin.pip:
     requirements: /root/requirements.txt
     virtualenv: /root/ansible
     virtualenv_python: python3

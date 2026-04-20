@@ -6,7 +6,7 @@
     group: "{{ canton_group }}"
     mode: "0644"
   notify:
-    - reload user systemd
+    - Reload user systemd
 
 - name: Enable cloudflared service
   become: true

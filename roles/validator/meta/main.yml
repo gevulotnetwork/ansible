@@ -6,4 +6,4 @@ galaxy_info:
   description: Validator setup for instances
   company: "Gevulot"
   license: "Do Not Redistribute"
-  min_ansible_version: 2.15
+  min_ansible_version: "2.15"

@@ -1,4 +1,5 @@
-- name: "setup part nodes: get node id"
+- name: "Setup part nodes: get node id"
+  become: true
   become_user: "{{ user_name }}"
   containers.podman.podman_container:
     name: "get-node-id-{{ inventory_hostname }}.{{ region }}"
@@ -15,13 +16,14 @@
       - show-node-id
   register: get_node_id_output
 
-- name: "setup part nodes : create node_id"
-  set_fact:
+- name: "Setup part nodes: create node_id"
+  ansible.builtin.set_fact:
     node_id: "{{ get_node_id_output.stdout_lines[0] }}"
 
-- name: "setup part nodes : write out node_id file"
-  template:
+- name: "Setup part nodes: write out node_id file"
+  ansible.builtin.template:
     src: node_id.j2
     dest: "{{ zenith_base_dir }}/node_id"
     owner: "{{ user_name }}"
     group: "{{ user_name }}"
+    mode: "0644"

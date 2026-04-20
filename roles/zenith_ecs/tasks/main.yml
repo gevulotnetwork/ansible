@@ -20,7 +20,7 @@
   loop_control:
     loop_var: ecs
   notify:
-    - reload user systemd
+    - Reload user systemd
 
 - name: Reload user systemd daemon
   become: true
@@ -50,6 +50,7 @@
   become_user: "{{ canton_user }}"
   ansible.builtin.command:
     cmd: "systemctl --user restart zenith-ecs-{{ ecs.id }}.service"
+  changed_when: true
   when: zenith_binaries_changed | default(false)
   environment:
     XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"

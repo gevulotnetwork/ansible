@@ -8,15 +8,17 @@
 #     - enable
 #     - start
 
-- debug:
+- name: Show config file path
+  ansible.builtin.debug:
     msg: "Copying config file: {{ alloy_base_dir }}/config.alloy"
 
 - name: Copy config file
-  template:
+  ansible.builtin.template:
     src: "config.alloy.j2"
     dest: "{{ alloy_base_dir }}/config.alloy"
+    mode: "0644"
   notify:
-    - restart alloy
+    - Restart alloy
 # TODO: This will be added later
 # - include_role:
 #     name: services

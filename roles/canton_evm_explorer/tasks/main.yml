@@ -6,7 +6,7 @@
     group: "{{ canton_group }}"
     mode: "0644"
   notify:
-    - reload user systemd
+    - Reload user systemd
 
 - name: Deploy canton-evm-explorer-indexer user service
   ansible.builtin.template:
@@ -16,7 +16,7 @@
     group: "{{ canton_group }}"
     mode: "0644"
   notify:
-    - reload user systemd
+    - Reload user systemd
 
 - name: Deploy canton-evm-explorer user service
   ansible.builtin.template:
@@ -26,7 +26,7 @@
     group: "{{ canton_group }}"
     mode: "0644"
   notify:
-    - reload user systemd
+    - Reload user systemd
 
 - name: Reload user systemd daemon
   become: true

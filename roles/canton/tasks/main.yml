@@ -103,8 +103,10 @@
     mode: "0600"
   when: podman_auth_json is defined
 
-- include_tasks: install.yml
-- include_tasks: install_zenith.yml
+- name: Include install tasks
+  ansible.builtin.include_tasks: install.yml
+- name: Include Zenith install tasks
+  ansible.builtin.include_tasks: install_zenith.yml
 
 - name: Deploy zenith.target
   ansible.builtin.template:
@@ -114,7 +116,7 @@
     group: "{{ canton_group }}"
     mode: "0644"
   notify:
-    - reload user systemd
+    - Reload user systemd
 
 - name: Reload and enable zenith.target
   become: true

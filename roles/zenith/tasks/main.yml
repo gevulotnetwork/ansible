@@ -1,9 +1,10 @@
 - name: Check if the genesis file has been generated
-  stat:
+  ansible.builtin.stat:
     path: "{{ zenith_config_dir }}/genesis.json"
   register: genesis_file
 
 - name: Generate initial config
+  become: true
   become_user: "{{ user.name }}"
   containers.podman.podman_container:
     name: zenith
@@ -24,19 +25,21 @@
   when: not genesis_file.stat.exists
 
 - name: Check if key file exists
-  stat:
+  ansible.builtin.stat:
     path: "{{ zenith_base_dir }}/keyring-file/{{ node_name }}.info"
   register: key_file
 
 - name: Add key to keyring if it doesn't exist
+  when: not key_file.stat.exists
   block:
     - name: Create recover key script
-      template:
+      ansible.builtin.template:
         src: recover_key.sh.j2
         dest: "{{ zenith_base_dir }}/recover_key.sh"
         mode: '755'
 
     - name: Recover account
+      become: true
       become_user: "{{ user.name }}"
       containers.podman.podman_container:
         name: "recover-keys-{{ node_name }}.{{ region }}"
@@ -50,7 +53,6 @@
         entrypoint: "{{ zenith_home }}/recover_key.sh"
 
     - name: Delete recover key script
-      file:
+      ansible.builtin.file:
         path: "{{ zenith_base_dir }}/recover_key.sh"
         state: absent
-  when: not key_file.stat.exists
