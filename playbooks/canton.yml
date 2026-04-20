@@ -68,7 +68,7 @@
     - name: Start zenith.target (brings up all zenith services)
       become_user: "{{ canton_user }}"
       ansible.builtin.command:
-        cmd: systemctl --user start zenith.target
+        cmd: systemctl --user restart zenith.target
       changed_when: false
       environment:
         XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"

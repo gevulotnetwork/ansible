@@ -1,11 +1,11 @@
 #!/bin/bash
-# Run the network setup script
+# Run the network setup script (bootstrap + parties + DAR upload)
 DIST_DIR="{{ canton_base_dir }}"
 SEQUENCER_HOST="{{ canton_network.sequencer_mediator.address }}"
 SEQUENCER_PORT="{{ canton_network.sequencer_mediator.public_api_port }}"
-exec java \
-    -Ddar.path="$DIST_DIR/lib/zenith-vb-1.0.0.dar" \
+exec java -Xmx{{ canton_java_xmx }} \
+    -Ddar.path="$DIST_DIR/dars/zenith-bridge.dar" \
     -Dsequencer.url="http://${SEQUENCER_HOST}:${SEQUENCER_PORT}" \
     -jar "$DIST_DIR/lib/canton.jar" run \
     -c "$DIST_DIR/configs/remote-admin.conf" \
-    "$DIST_DIR/scripts/setup-distributed.canton"
+    "$DIST_DIR/scripts/setup-network.canton"

@@ -1,7 +1,7 @@
 [Unit]
 Description="Create Canton Network topology"
-After=canton-participant1.service canton-participant2.service canton-participant3.service
-Wants=canton-participant1.service canton-participant2.service canton-participant3.service
+After={{ canton_participants | map(attribute='name') | map('regex_replace', '^(.*)$', 'canton-\\1.service') | join(' ') }}
+Wants={{ canton_participants | map(attribute='name') | map('regex_replace', '^(.*)$', 'canton-\\1.service') | join(' ') }}
 PartOf=zenith.target
 
 [Service]

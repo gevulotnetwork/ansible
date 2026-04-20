@@ -7,7 +7,21 @@ canton {
 
   sequencers {
     sequencer1 {
-      storage.type = {{ canton_sequencer_mediator_storage_type }}
+      storage {
+        type = {{ canton_sequencer_mediator_storage_type }}
+{% if canton_sequencer_mediator_storage_type == 'postgres' %}
+        config {
+          dataSourceClassName = "org.postgresql.ds.PGSimpleDataSource"
+          properties {
+            serverName = "{{ canton_postgres_host | default('127.0.0.1') }}"
+            databaseName = "sequencer1"
+            portNumber = "{{ canton_postgres_port | default('5432') }}"
+            user = "{{ canton_postgres_user | default('canton') }}"
+            password = "{{ canton_postgres_password | default('canton') }}"
+          }
+        }
+{% endif %}
+      }
       public-api { address = "0.0.0.0", port = {{ canton_sequencer_public_api_port }} }
       admin-api { address = "0.0.0.0", port = {{ canton_sequencer_admin_api_port }} }
       sequencer.type = {{ canton_sequencer_type }}
@@ -16,7 +30,21 @@ canton {
 
   mediators {
     mediator1 {
-      storage.type = {{ canton_sequencer_mediator_storage_type }}
+      storage {
+        type = {{ canton_sequencer_mediator_storage_type }}
+{% if canton_sequencer_mediator_storage_type == 'postgres' %}
+        config {
+          dataSourceClassName = "org.postgresql.ds.PGSimpleDataSource"
+          properties {
+            serverName = "{{ canton_postgres_host | default('127.0.0.1') }}"
+            databaseName = "mediator1"
+            portNumber = "{{ canton_postgres_port | default('5432') }}"
+            user = "{{ canton_postgres_user | default('canton') }}"
+            password = "{{ canton_postgres_password | default('canton') }}"
+          }
+        }
+{% endif %}
+      }
       admin-api { address = "0.0.0.0", port = {{ canton_mediator_admin_api_port }} }
     }
   }

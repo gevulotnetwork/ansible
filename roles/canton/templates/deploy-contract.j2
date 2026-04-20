@@ -1,0 +1,7 @@
+#!/bin/bash
+# Deploy bridge contracts (VBState, BridgeRegistry, BridgeWorkflow, EVM delegation)
+DIST_DIR="{{ canton_base_dir }}"
+exec java -Xmx{{ canton_java_xmx }} \
+    -jar "$DIST_DIR/lib/canton.jar" run \
+    -c "$DIST_DIR/configs/remote-admin.conf" \
+    "$DIST_DIR/scripts/deploy-contracts.canton"

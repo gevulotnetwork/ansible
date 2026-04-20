@@ -1,6 +1,6 @@
 zenith_relayers: []
 zenith_canton_jwt: "XXX"
-zenith_canton_package_name: zenith-vb-demo
+zenith_canton_package_name: zenith-bridge
 zenith_canton_module_name: ZenithVB
 zenith_canton_entity_name: ZenithVBState
 zenith_chain: dev

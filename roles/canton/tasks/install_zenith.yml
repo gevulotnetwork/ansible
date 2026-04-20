@@ -1,11 +1,49 @@
-- name: Install Zenith binaries
-  ansible.builtin.include_tasks: install_zenith_component.yml
-  loop:
-    - name: zenith-relayer
-      version: "{{ zenith_relayer_version }}"
-    - name: zenith-node
-      version: "{{ zenith_node_version }}"
-    - name: zenith-ecs
-      version: "{{ zenith_ecs_version }}"
+- name: Create local download directory for Zenith binaries
+  ansible.builtin.file:
+    path: "{{ zenith_download_dir }}"
+    state: directory
+    mode: "0755"
+  delegate_to: localhost
+  become: false
+  run_once: true
+
+- name: Download Zenith release tarballs from GitHub
+  ansible.builtin.command:
+    cmd: >-
+      gh release download {{ item.release_tag }}
+      --repo {{ zenith_github_repo }}
+      --pattern {{ item.asset }}
+      --dir {{ zenith_download_dir }}
+      --clobber
+    creates: "{{ zenith_download_dir }}/{{ item.asset }}"
+  delegate_to: localhost
+  become: false
+  run_once: true
+  loop: "{{ zenith_release_assets }}"
   loop_control:
-    loop_var: zenith_component
+    label: "{{ item.name }}"
+
+- name: Extract Zenith binaries from tarballs
+  ansible.builtin.unarchive:
+    src: "{{ zenith_download_dir }}/{{ item.asset }}"
+    dest: "{{ zenith_download_dir }}"
+    extra_opts: ["--strip-components=1"]
+    creates: "{{ zenith_download_dir }}/{{ item.name }}"
+  delegate_to: localhost
+  become: false
+  run_once: true
+  loop: "{{ zenith_release_assets }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Install Zenith binaries
+  ansible.builtin.copy:
+    src: "{{ zenith_download_dir }}/{{ item.name }}"
+    dest: "{{ zenith_bin_dir }}/{{ item.name }}"
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0755"
+  loop: "{{ zenith_release_assets }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: zenith_binaries_deployed

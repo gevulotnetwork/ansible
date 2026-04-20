@@ -7,15 +7,29 @@ canton {
 
   participants {
     {{ participant.name }} {
-      storage.type = {{ participant.storage_type | default(canton_participant_storage_type) }}
+      storage {
+        type = {{ participant.storage_type | default(canton_participant_storage_type) }}
+{% if participant.storage_type | default(canton_participant_storage_type) == 'postgres' %}
+        config {
+          dataSourceClassName = "org.postgresql.ds.PGSimpleDataSource"
+          properties {
+            serverName = "{{ canton_postgres_host | default('127.0.0.1') }}"
+            databaseName = "{{ participant.name }}"
+            portNumber = "{{ canton_postgres_port | default('5432') }}"
+            user = "{{ canton_postgres_user | default('canton') }}"
+            password = "{{ canton_postgres_password | default('canton') }}"
+          }
+        }
+{% endif %}
+      }
       admin-api { address = "0.0.0.0", port = {{ participant.admin_api_port }} }
       ledger-api { address = "0.0.0.0", port = {{ participant.ledger_api_port }} }
       http-ledger-api { address = "0.0.0.0", port = {{ participant.http_ledger_api_port }} }
 
       parameters {
         alpha-version-support = yes
-{% if canton_edition != 'open-source' and participant.extension is defined %}
         engine {
+{% if participant.extension is defined %}
           extensions {
             {{ participant.extension.name }} {
               name = "{{ participant.extension.display_name | default(participant.extension.name) }}"
@@ -23,8 +37,8 @@ canton {
               port = {{ participant.extension.port }}
               use-tls = {{ participant.extension.use_tls | default(false) | lower }}
               connect-timeout = {{ participant.extension.connect_timeout | default('2s') }}
-              request-timeout = {{ participant.extension.request_timeout | default('5s') }}
-              max-total-timeout = {{ participant.extension.max_total_timeout | default('10s') }}
+              request-timeout = {{ participant.extension.request_timeout | default('10s') }}
+              max-total-timeout = {{ participant.extension.max_total_timeout | default('30s') }}
               max-retries = {{ participant.extension.max_retries | default(1) }}
               declared-functions = [
 {% for func in participant.extension.declared_functions %}
@@ -33,13 +47,13 @@ canton {
               ]
             }
           }
+{% endif %}
           extension-settings {
             validate-extensions-on-startup = {{ participant.validate_extensions | default(false) | lower }}
             fail-on-extension-validation-error = {{ participant.fail_on_extension_error | default(false) | lower }}
             echo-mode = {{ participant.echo_mode | default(false) | lower }}
           }
         }
-{% endif %}
       }
     }
   }

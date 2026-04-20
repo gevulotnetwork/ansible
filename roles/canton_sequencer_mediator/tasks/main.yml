@@ -38,3 +38,13 @@
   environment:
     XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
     DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"
+
+- name: Restart sequencer-mediator if JAR changed
+  become: true
+  become_user: "{{ canton_user }}"
+  ansible.builtin.command:
+    cmd: systemctl --user restart canton-sequencer-mediator.service
+  when: canton_jar_changed | default(false)
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"

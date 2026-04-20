@@ -1,110 +1,46 @@
-- name: Install Canton JAR from local file
-  when: canton_jar_local is defined
-  block:
-    - name: Copy local Canton JAR
-      ansible.builtin.copy:
-        src: "{{ canton_jar_local }}"
-        dest: "{{ canton_lib_dir }}/{{ canton_jar_local | basename }}"
-        owner: "{{ canton_user }}"
-        group: "{{ canton_group }}"
-        mode: "0644"
-
-    - name: Symlink local JAR to canton.jar
-      ansible.builtin.file:
-        src: "{{ canton_lib_dir }}/{{ canton_jar_local | basename }}"
-        dest: "{{ canton_jar }}"
-        owner: "{{ canton_user }}"
-        group: "{{ canton_group }}"
-        state: link
-
-- name: Download and install Canton release
-  when: canton_jar_local is not defined
-  block:
-    - name: Check if Canton JAR already exists at target version
-      ansible.builtin.stat:
-        path: "{{ canton_lib_dir }}/canton-{{ canton_edition }}-{{ canton_version }}.jar"
-      register: canton_jar_stat
-
-    - name: Download and extract Canton release
-      when: not canton_jar_stat.stat.exists
-      block:
-        - name: Download Canton release tarball
-          ansible.builtin.get_url:
-            url: "{{ canton_release_url }}"
-            dest: "/tmp/{{ canton_archive_name }}.tar.gz"
-            mode: "0644"
-
-        - name: Extract Canton release
-          ansible.builtin.unarchive:
-            src: "/tmp/{{ canton_archive_name }}.tar.gz"
-            dest: /tmp
-            remote_src: true
-
-        - name: Install Canton JAR
-          ansible.builtin.copy:
-            src: "/tmp/{{ canton_archive_name }}/lib/canton-{{ canton_edition }}-{{ canton_version }}.jar"
-            dest: "{{ canton_lib_dir }}/canton-{{ canton_edition }}-{{ canton_version }}.jar"
-            owner: "{{ canton_user }}"
-            group: "{{ canton_group }}"
-            mode: "0644"
-            remote_src: true
-
-        - name: Install Canton launcher script
-          ansible.builtin.copy:
-            src: "/tmp/{{ canton_archive_name }}/bin/canton"
-            dest: "{{ canton_bin_dir }}/canton"
-            owner: "{{ canton_user }}"
-            group: "{{ canton_group }}"
-            mode: "0755"
-            remote_src: true
-
-        - name: Install Canton reference configs
-          ansible.builtin.copy:
-            src: "/tmp/{{ canton_archive_name }}/config/"
-            dest: "{{ canton_config_dir }}/reference/"
-            owner: "{{ canton_user }}"
-            group: "{{ canton_group }}"
-            mode: "0644"
-            remote_src: true
-
-        - name: Install Canton DAR files
-          ansible.builtin.copy:
-            src: "/tmp/{{ canton_archive_name }}/dars/"
-            dest: "{{ canton_dars_dir }}/"
-            owner: "{{ canton_user }}"
-            group: "{{ canton_group }}"
-            mode: "0644"
-            remote_src: true
-
-        - name: Install Canton scripts
-          ansible.builtin.copy:
-            src: "/tmp/{{ canton_archive_name }}/scripts/"
-            dest: "{{ canton_scripts_dir }}/"
-            owner: "{{ canton_user }}"
-            group: "{{ canton_group }}"
-            mode: "0755"
-            remote_src: true
-
-        - name: Clean up downloaded tarball and extracted directory
-          ansible.builtin.file:
-            path: "{{ item }}"
-            state: absent
-          loop:
-            - "/tmp/{{ canton_archive_name }}.tar.gz"
-            - "/tmp/{{ canton_archive_name }}"
-
-    - name: Symlink versioned JAR to canton.jar
-      ansible.builtin.file:
-        src: "{{ canton_lib_dir }}/canton-{{ canton_edition }}-{{ canton_version }}.jar"
-        dest: "{{ canton_jar }}"
-        owner: "{{ canton_user }}"
-        group: "{{ canton_group }}"
-        state: link
-
-- name: Deploy Zenith DAR file
+- name: Copy Canton JAR
   ansible.builtin.copy:
-    src: zenith-vb-1.0.0.dar
-    dest: "{{ canton_lib_dir }}/zenith-vb-1.0.0.dar"
+    src: "{{ canton_dist_dir }}/canton.jar"
+    dest: "{{ canton_lib_dir }}/canton.jar"
     owner: "{{ canton_user }}"
     group: "{{ canton_group }}"
     mode: "0644"
+  register: canton_jar_deployed
+
+- name: Create damlc directory
+  ansible.builtin.file:
+    path: "{{ canton_bin_dir }}/damlc"
+    state: directory
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0755"
+
+- name: Extract damlc
+  ansible.builtin.unarchive:
+    src: "{{ canton_dist_dir }}/damlc.tar.gz"
+    dest: "{{ canton_bin_dir }}/damlc"
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    creates: "{{ canton_bin_dir }}/damlc/bazel-bin/compiler/damlc/damlc-bootstrap"
+
+- name: Deploy Zenith DAR files
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ canton_dars_dir }}/{{ item | basename }}"
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0644"
+  loop:
+    - "{{ canton_dist_dir }}/zenith-bridge.dar"
+  register: canton_dar_deployed
+
+- name: Deploy EVM contract files
+  ansible.builtin.copy:
+    src: "{{ canton_dist_dir }}/{{ item }}"
+    dest: "{{ zenith_etc_dir }}/{{ item }}"
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0644"
+  loop:
+    - BridgedToken.bin
+    - BridgedToken.json

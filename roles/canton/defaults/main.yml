@@ -1,7 +1,4 @@
-canton_version: "3.4.11"
-canton_edition: "open-source"
-canton_release_url: "https://github.com/digital-asset/canton/releases/download/v{{ canton_version }}/canton-{{ canton_edition }}-{{ canton_version }}.tar.gz"
-canton_archive_name: "canton-{{ canton_edition }}-{{ canton_version }}"
+# canton_dist_dir: must be set in inventory (path to built artifacts)
 
 canton_user: canton
 canton_group: canton
@@ -20,11 +17,31 @@ canton_nofile_limit: 65536
 canton_nproc_limit: 4096
 
 # Zenith
-zenith_relayer_version: "0.1.0"
-zenith_node_version: "0.1.0"
-zenith_ecs_version: "0.1.0"
-zenith_arch: "x86_64-unknown-linux-musl"
 zenith_base_dir: "{{ canton_user_home }}/zenith"
 zenith_bin_dir: "{{ zenith_base_dir }}/bin"
 zenith_data_dir: "{{ zenith_base_dir }}/data"
 zenith_etc_dir: "{{ zenith_base_dir }}/etc"
+
+# Zenith GitHub releases
+zenith_github_repo: zenith-network/zenith-canton
+zenith_download_dir: /tmp/zenith-releases
+zenith_arch: x86_64-unknown-linux-musl
+
+zenith_relayer_version: "0.1.0"
+zenith_node_version: "0.1.0"
+zenith_ecs_version: "0.1.0"
+zenith_transfer_eth_version: "0.1.0"
+
+zenith_release_assets:
+  - name: zenith-relayer
+    release_tag: "zenith-relayer-v{{ zenith_relayer_version }}"
+    asset: "zenith-relayer-zenith-relayer-v{{ zenith_relayer_version }}-{{ zenith_arch }}.tar.gz"
+  - name: zenith-node
+    release_tag: "zenith-node-v{{ zenith_node_version }}"
+    asset: "zenith-node-zenith-node-v{{ zenith_node_version }}-{{ zenith_arch }}.tar.gz"
+  - name: zenith-ecs
+    release_tag: "zenith-ecs-v{{ zenith_ecs_version }}"
+    asset: "zenith-ecs-zenith-ecs-v{{ zenith_ecs_version }}-{{ zenith_arch }}.tar.gz"
+  - name: transfer-eth
+    release_tag: "eth-utils-v{{ zenith_transfer_eth_version }}"
+    asset: "transfer-eth-eth-utils-v{{ zenith_transfer_eth_version }}-{{ zenith_arch }}.tar.gz"

@@ -1,0 +1,150 @@
+// Zenith Bridge — Network Setup
+//
+// Bootstraps the synchronizer, connects participants, creates parties,
+// and uploads the DAR. Idempotent: safe to re-run.
+//
+// Parties:
+//   participant1: Validator1, BridgeOperator, EndUser
+//   participant2: Validator2
+//   participant3: TokenIssuer
+
+println("=" * 60)
+println("Zenith Bridge — Network Setup")
+println("=" * 60)
+
+// ── Phase 1: Wait for nodes ──────────────────────────────────────────────────
+println("\n[Phase 1] Waiting for nodes to be ready...")
+
+def waitForNode(name: String, check: => Boolean, maxAttempts: Int = 120): Unit = {
+  var attempts = 0
+  var ready = false
+  print(s"  $name ")
+  while (attempts < maxAttempts && !ready) {
+    ready = try { check } catch { case _: Exception => false }
+    if (!ready) {
+      print(".")
+      Thread.sleep(1000)
+      attempts += 1
+    }
+  }
+  if (!ready) {
+    println(s" TIMEOUT")
+    sys.error(s"$name did not become ready after $maxAttempts seconds")
+  }
+  println(s" ready")
+}
+
+waitForNode("sequencer1",   try { sequencer1.health.is_running() }    catch { case _: Exception => false })
+waitForNode("mediator1",    try { mediator1.health.is_running() }     catch { case _: Exception => false })
+waitForNode("participant1", try { participant1.health.initialized() } catch { case _: Exception => false })
+waitForNode("participant2", try { participant2.health.initialized() } catch { case _: Exception => false })
+waitForNode("participant3", try { participant3.health.initialized() } catch { case _: Exception => false })
+
+// ── Phase 2: Bootstrap synchronizer ─────────────────────────────────────────
+println("\n[Phase 2] Bootstrapping synchronizer...")
+print("  Initializing 'da' synchronizer... ")
+try {
+  bootstrap.synchronizer(
+    "da",
+    sequencers = Seq(sequencer1),
+    mediators = Seq(mediator1),
+    synchronizerOwners = Seq(sequencer1),
+    synchronizerThreshold = PositiveInt.one,
+    staticSynchronizerParameters = StaticSynchronizerParameters.defaultsWithoutKMS(ProtocolVersion.dev),
+  )
+  println("done")
+} catch {
+  case _: Exception => println("already bootstrapped, skipping.")
+}
+
+// ── Phase 3: Connect participants ────────────────────────────────────────────
+println("\n[Phase 3] Connecting participants to synchronizer...")
+val sequencerUrl = sys.props.getOrElse("sequencer.url", "http://127.0.0.1:5008")
+
+def connectParticipant(p: com.digitalasset.canton.console.ParticipantReference, name: String): Unit = {
+  print(s"  Connecting $name... ")
+  try {
+    if (p.synchronizers.active("da")) {
+      println("already connected.")
+    } else {
+      p.synchronizers.connect("da", sequencerUrl)
+      println("done")
+    }
+  } catch {
+    case _: Exception =>
+      p.synchronizers.connect("da", sequencerUrl)
+      println("done")
+  }
+}
+
+connectParticipant(participant1, "participant1")
+connectParticipant(participant2, "participant2")
+connectParticipant(participant3, "participant3")
+
+print("  Waiting for all participants to be active... ")
+utils.retry_until_true(timeout = 30.seconds) {
+  participant1.synchronizers.active("da") &&
+  participant2.synchronizers.active("da") &&
+  participant3.synchronizers.active("da")
+}
+println("done")
+
+// ── Phase 4: Create parties ──────────────────────────────────────────────────
+println("\n[Phase 4] Creating parties...")
+println("  (Each party requires a topology transaction on the synchronizer.)")
+
+def findOrCreate(p: com.digitalasset.canton.console.ParticipantReference, name: String) = {
+  print(s"  $name ... ")
+  val existing = p.parties.list().find(_.party.toProtoPrimitive.startsWith(s"$name::")).map(_.party)
+  existing match {
+    case Some(party) =>
+      println(s"exists: $party")
+      party
+    case None =>
+      val party = p.parties.enable(name)
+      println(s"created: $party")
+      party
+  }
+}
+
+val validator1     = findOrCreate(participant1, "Validator1")
+val bridgeOperator = findOrCreate(participant1, "BridgeOperator")
+val endUser        = findOrCreate(participant1, "EndUser")
+val validator2     = findOrCreate(participant2, "Validator2")
+val tokenIssuer    = findOrCreate(participant3, "TokenIssuer")
+
+// ── Phase 5: Upload DAR ──────────────────────────────────────────────────────
+println("\n[Phase 5] Uploading DAR...")
+val darPath = Option(System.getProperty("dar.path"))
+  .getOrElse(sys.error("dar.path system property required"))
+println(s"  DAR: $darPath")
+
+val synchronizerId = participant1.synchronizers.id_of(SynchronizerAlias.tryCreate("da"))
+
+def uploadDar(p: com.digitalasset.canton.console.ParticipantReference, name: String): Unit = {
+  print(s"  Uploading to $name... ")
+  try {
+    p.dars.upload(darPath, synchronizerId = synchronizerId)
+    println("done")
+  } catch {
+    case _: Exception => println("already uploaded, skipping.")
+  }
+}
+
+uploadDar(participant1, "participant1")
+uploadDar(participant2, "participant2")
+uploadDar(participant3, "participant3")
+
+// ── Summary ──────────────────────────────────────────────────────────────────
+println("\n" + "=" * 60)
+println("Network setup complete.")
+println("=" * 60)
+println("\nParties by participant:")
+println("  participant1:")
+println(s"    Validator1:     $validator1")
+println(s"    BridgeOperator: $bridgeOperator")
+println(s"    EndUser:        $endUser")
+println("  participant2:")
+println(s"    Validator2:     $validator2")
+println("  participant3:")
+println(s"    TokenIssuer:    $tokenIssuer")

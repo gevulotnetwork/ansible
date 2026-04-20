@@ -38,10 +38,32 @@
     cmd: "loginctl enable-linger {{ canton_user }}"
   changed_when: false
 
+- name: Ensure XDG_RUNTIME_DIR exists
+  ansible.builtin.file:
+    path: "/run/user/{{ canton_uid.stdout }}"
+    state: directory
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0700"
+
+- name: Start user systemd instance
+  ansible.builtin.command:
+    cmd: "systemctl start user@{{ canton_uid.stdout }}.service"
+  changed_when: false
+
+- name: Start user D-Bus socket
+  become: true
+  become_user: "{{ canton_user }}"
+  ansible.builtin.command:
+    cmd: "systemctl --user start dbus.socket"
+  changed_when: false
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+
 - name: Wait for user D-Bus socket
   ansible.builtin.wait_for:
     path: "/run/user/{{ canton_uid.stdout }}/bus"
-    timeout: 15
+    timeout: 10
 
 - name: Create Canton directories
   ansible.builtin.file:
@@ -134,6 +156,7 @@
     - canton-run
     - run-test
     - setup-network
+    - deploy-contract
 
 - name: Deploy Canton scripts
   ansible.builtin.copy:
@@ -143,5 +166,11 @@
     group: "{{ canton_group }}"
     mode: "0644"
   loop:
-    - setup-distributed.canton
-    - test-distributed.canton
+    - setup-network.canton
+    - deploy-contracts.canton
+
+- name: Set artifact change facts
+  ansible.builtin.set_fact:
+    canton_jar_changed: "{{ canton_jar_deployed.changed | default(false) }}"
+    canton_dar_changed: "{{ canton_dar_deployed.changed | default(false) }}"
+    zenith_binaries_changed: "{{ zenith_binaries_deployed.changed | default(false) }}"
