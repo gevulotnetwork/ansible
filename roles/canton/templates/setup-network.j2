@@ -4,7 +4,7 @@ DIST_DIR="{{ canton_base_dir }}"
 SEQUENCER_HOST="{{ canton_network.sequencer_mediator.address }}"
 SEQUENCER_PORT="{{ canton_network.sequencer_mediator.public_api_port }}"
 exec java -Xmx{{ canton_java_xmx }} \
-    -Ddar.path="$DIST_DIR/dars/zenith-bridge.dar" \
+    -Ddar.path="$DIST_DIR/dars/zenith-evm-0.1.0.dar" \
     -Dsequencer.url="http://${SEQUENCER_HOST}:${SEQUENCER_PORT}" \
     -jar "$DIST_DIR/lib/canton.jar" run \
     -c "$DIST_DIR/configs/remote-admin.conf" \

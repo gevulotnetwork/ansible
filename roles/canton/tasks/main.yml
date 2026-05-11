@@ -175,4 +175,4 @@
   ansible.builtin.set_fact:
     canton_jar_changed: "{{ canton_jar_deployed.changed | default(false) }}"
     canton_dar_changed: "{{ canton_dar_deployed.changed | default(false) }}"
-    zenith_binaries_changed: "{{ zenith_binaries_deployed.changed | default(false) }}"
+    zenith_evm_binaries_changed: "{{ zenith_evm_binaries_deployed.changed | default(false) }}"

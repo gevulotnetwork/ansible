@@ -34,6 +34,7 @@
   ansible.builtin.command:
     cmd: systemctl --user restart zenith-deploy-contract.service
   changed_when: true
+  ignore_errors: true
   when: canton_jar_changed | default(false) or canton_dar_changed | default(false)
   environment:
     XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"

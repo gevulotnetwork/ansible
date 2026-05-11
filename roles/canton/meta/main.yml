@@ -1,5 +1,5 @@
 galaxy_info:
-  author: bhechinger
+  author: gevulot
   description: Canton base setup - user, directories, JAR, and distributed target
   company: Gevulot
   license: GPL-2.0-or-later

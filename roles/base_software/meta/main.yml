@@ -2,7 +2,7 @@ dependencies: []
 
 galaxy_info:
   role_name: base_software
-  author: bhechinger
+  author: gevulot
   description: Base software for instances
   company: "Gevulot"
   license: "Do Not Redistribute"

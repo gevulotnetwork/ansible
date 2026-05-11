@@ -7,11 +7,11 @@
   become: false
   run_once: true
 
-- name: Download Zenith release tarballs from GitHub
+- name: Download Zenith EVM release tarballs from GitHub
   ansible.builtin.command:
     cmd: >-
       gh release download {{ item.release_tag }}
-      --repo {{ zenith_github_repo }}
+      --repo {{ zenith_evm_github_repo }}
       --pattern {{ item.asset }}
       --dir {{ zenith_download_dir }}
       --clobber
@@ -19,11 +19,11 @@
   delegate_to: localhost
   become: false
   run_once: true
-  loop: "{{ zenith_release_assets }}"
+  loop: "{{ zenith_evm_release_assets }}"
   loop_control:
     label: "{{ item.name }}"
 
-- name: Extract Zenith binaries from tarballs
+- name: Extract Zenith EVM binaries from tarballs
   ansible.builtin.unarchive:
     src: "{{ zenith_download_dir }}/{{ item.asset }}"
     dest: "{{ zenith_download_dir }}"
@@ -32,18 +32,18 @@
   delegate_to: localhost
   become: false
   run_once: true
-  loop: "{{ zenith_release_assets }}"
+  loop: "{{ zenith_evm_release_assets }}"
   loop_control:
     label: "{{ item.name }}"
 
-- name: Install Zenith binaries
+- name: Install Zenith EVM binaries
   ansible.builtin.copy:
     src: "{{ zenith_download_dir }}/{{ item.name }}"
     dest: "{{ zenith_bin_dir }}/{{ item.name }}"
     owner: "{{ canton_user }}"
     group: "{{ canton_group }}"
     mode: "0755"
-  loop: "{{ zenith_release_assets }}"
+  loop: "{{ zenith_evm_release_assets }}"
   loop_control:
     label: "{{ item.name }}"
-  register: zenith_binaries_deployed
+  register: zenith_evm_binaries_deployed

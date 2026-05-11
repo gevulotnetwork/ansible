@@ -8,12 +8,32 @@
   notify:
     - Reload user systemd
 
+- name: Reload user systemd daemon
+  become: true
+  become_user: "{{ canton_user }}"
+  ansible.builtin.command:
+    cmd: systemctl --user daemon-reload
+  changed_when: false
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"
+
 - name: Enable cloudflared service
   become: true
   become_user: "{{ canton_user }}"
-  ansible.builtin.systemd_service:
-    name: cloudflared
-    enabled: true
-    scope: user
+  ansible.builtin.command:
+    cmd: systemctl --user enable cloudflared.service
+  changed_when: false
   environment:
     XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"
+
+- name: Start cloudflared service
+  become: true
+  become_user: "{{ canton_user }}"
+  ansible.builtin.command:
+    cmd: systemctl --user restart cloudflared.service
+  changed_when: false
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"

@@ -31,16 +31,5 @@
     group: "{{ canton_group }}"
     mode: "0644"
   loop:
-    - "{{ canton_dist_dir }}/zenith-bridge.dar"
+    - "{{ zenith_evm_dist_dir }}/zenith-evm-0.1.0.dar"
   register: canton_dar_deployed
-
-- name: Deploy EVM contract files
-  ansible.builtin.copy:
-    src: "{{ canton_dist_dir }}/{{ item }}"
-    dest: "{{ zenith_etc_dir }}/{{ item }}"
-    owner: "{{ canton_user }}"
-    group: "{{ canton_group }}"
-    mode: "0644"
-  loop:
-    - BridgedToken.bin
-    - BridgedToken.json

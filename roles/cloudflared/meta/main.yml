@@ -1,5 +1,5 @@
 galaxy_info:
-  author: bhechinger
+  author: gevulot
   description: Cloudflare Tunnel via Podman (user service)
   company: Gevulot
   license: GPL-2.0-or-later

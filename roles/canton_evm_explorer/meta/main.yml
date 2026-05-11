@@ -1,5 +1,5 @@
 galaxy_info:
-  author: bhechinger
+  author: gevulot
   description: Canton EVM Explorer stack (indexer + web UI) via Podman
   company: Gevulot
   license: GPL-2.0-or-later

@@ -1,15 +1,15 @@
-// Zenith Bridge — Network Setup
+// Zenith EVM — Network Setup
 //
 // Bootstraps the synchronizer, connects participants, creates parties,
 // and uploads the DAR. Idempotent: safe to re-run.
 //
 // Parties:
-//   participant1: Validator1, BridgeOperator, EndUser
+//   participant1: ZEO, Validator1
 //   participant2: Validator2
-//   participant3: TokenIssuer
+//   participant3: (observer)
 
 println("=" * 60)
-println("Zenith Bridge — Network Setup")
+println("Zenith EVM — Network Setup")
 println("=" * 60)
 
 // ── Phase 1: Wait for nodes ──────────────────────────────────────────────────
@@ -107,11 +107,9 @@ def findOrCreate(p: com.digitalasset.canton.console.ParticipantReference, name: 
   }
 }
 
-val validator1     = findOrCreate(participant1, "Validator1")
-val bridgeOperator = findOrCreate(participant1, "BridgeOperator")
-val endUser        = findOrCreate(participant1, "EndUser")
-val validator2     = findOrCreate(participant2, "Validator2")
-val tokenIssuer    = findOrCreate(participant3, "TokenIssuer")
+val zeo        = findOrCreate(participant1, "ZEO")
+val validator1 = findOrCreate(participant1, "Validator1")
+val validator2 = findOrCreate(participant2, "Validator2")
 
 // ── Phase 5: Upload DAR ──────────────────────────────────────────────────────
 println("\n[Phase 5] Uploading DAR...")
@@ -141,10 +139,7 @@ println("Network setup complete.")
 println("=" * 60)
 println("\nParties by participant:")
 println("  participant1:")
-println(s"    Validator1:     $validator1")
-println(s"    BridgeOperator: $bridgeOperator")
-println(s"    EndUser:        $endUser")
+println(s"    ZEO:        $zeo")
+println(s"    Validator1: $validator1")
 println("  participant2:")
-println(s"    Validator2:     $validator2")
-println("  participant3:")
-println(s"    TokenIssuer:    $tokenIssuer")
+println(s"    Validator2: $validator2")

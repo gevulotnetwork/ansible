@@ -1,0 +1,17 @@
+---
+skip_list:
+  # We intentionally use systemctl --user via command because
+  # ansible.builtin.systemd_service scope: user is broken under become
+  - command-instead-of-module
+  # Variable names are referenced in inventory and cross-role; renaming
+  # would break existing deployments
+  - var-naming[no-role-prefix]
+  # Podman module uses key=value format that ansible-lint can't parse
+  - args[module]
+
+exclude_paths:
+  - old/
+
+mock_roles:
+  - nginxinc.nginx
+  - nginxinc.nginx_config

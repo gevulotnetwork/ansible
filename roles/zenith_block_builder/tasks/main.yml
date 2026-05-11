@@ -1,0 +1,49 @@
+- name: Deploy zenith-block-builder user services
+  ansible.builtin.template:
+    src: zenith-block-builder.service.j2
+    dest: "{{ canton_systemd_dir }}/zenith-block-builder-{{ bb.id }}.service"
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0644"
+  loop: "{{ zenith_block_builders }}"
+  loop_control:
+    loop_var: bb
+  notify:
+    - Reload user systemd
+
+- name: Reload user systemd daemon
+  become: true
+  become_user: "{{ canton_user }}"
+  ansible.builtin.command:
+    cmd: systemctl --user daemon-reload
+  changed_when: false
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"
+
+- name: Enable zenith-block-builder services
+  become: true
+  become_user: "{{ canton_user }}"
+  ansible.builtin.command:
+    cmd: "systemctl --user enable zenith-block-builder-{{ bb.id }}.service"
+  changed_when: false
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"
+  loop: "{{ zenith_block_builders }}"
+  loop_control:
+    loop_var: bb
+
+- name: Restart zenith-block-builder services if binaries changed
+  become: true
+  become_user: "{{ canton_user }}"
+  ansible.builtin.command:
+    cmd: "systemctl --user restart zenith-block-builder-{{ bb.id }}.service"
+  changed_when: true
+  when: zenith_evm_binaries_changed | default(false)
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"
+  loop: "{{ zenith_block_builders }}"
+  loop_control:
+    loop_var: bb

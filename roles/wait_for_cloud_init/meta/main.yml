@@ -2,7 +2,7 @@ dependencies: []
 
 galaxy_info:
   role_name: wait_for_cloud_init
-  author: bhechinger
+  author: gevulot
   description: Wait for cloud-init to complete
   company: "Gevulot"
   license: "Do Not Redistribute"

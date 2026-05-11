@@ -2,7 +2,7 @@ dependencies: []
 
 galaxy_info:
   role_name: users
-  author: bhechinger
+  author: gevulot
   description: User setup for instances
   company: "Gevulot"
   license: "Do Not Redistribute"

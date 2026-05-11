@@ -1,0 +1,23 @@
+[Unit]
+Description="Zenith Headcaster {{ hc.id }}"
+After=network.target zenith-deploy-contract.service
+Requires=zenith-deploy-contract.service
+PartOf=zenith.target
+
+[Service]
+Type=simple
+
+Environment=RUST_LOG=info,headcaster=debug
+ExecStart=%h/zenith/bin/headcaster \
+	--port {{ hc.port }}
+
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=30
+TimeoutStopSec=30
+
+LimitNOFILE={{ canton_nofile_limit }}
+LimitNPROC={{ canton_nproc_limit }}
+
+[Install]
+WantedBy=zenith.target

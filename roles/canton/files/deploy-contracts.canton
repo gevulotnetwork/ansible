@@ -1,13 +1,31 @@
-// Zenith Bridge — Deploy VB State + Bridge Contracts
+// Zenith EVM — Deploy ZeoRules + initial State
 //
 // Parties (must already exist from setup-network):
-//   participant1: Validator1, BridgeOperator, EndUser
+//   participant1: ZEO, Validator1
 //   participant2: Validator2
-//   participant3: TokenIssuer
+
+import com.daml.ledger.api.v2.value._
+import com.daml.ledger.api.v2.commands._
+import com.google.protobuf.empty.Empty
 
 println("=" * 60)
-println("Zenith Bridge — Deploy Contracts")
+println("Zenith EVM — Deploy Contracts")
 println("=" * 60)
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+val unitV = Value(Value.Sum.Unit(Empty()))
+def partyV(p: com.digitalasset.canton.topology.PartyId) = Value(Value.Sum.Party(p.toProtoPrimitive))
+def intV(n: Long) = Value(Value.Sum.Int64(n))
+def textV(s: String) = Value(Value.Sum.Text(s))
+def boolV(b: Boolean) = Value(Value.Sum.Bool(b))
+val optNone = Value(Value.Sum.Optional(Optional(None)))
+def listV(vs: Value*) = Value(Value.Sum.List(com.daml.ledger.api.v2.value.List(vs)))
+def recV(fields: (String, Value)*) =
+  Value(Value.Sum.Record(Record(fields = fields.map { case (n, v) => RecordField(n, Some(v)) })))
+def varV(tag: String, v: Value) = Value(Value.Sum.Variant(Variant(constructor = tag, value = Some(v))))
+def enumV(tag: String) = Value(Value.Sum.Enum(com.daml.ledger.api.v2.value.Enum(constructor = tag)))
+def genMapV(entries: (Value, Value)*) =
+  Value(Value.Sum.GenMap(GenMap(entries = entries.map { case (k, v) => GenMap.Entry(Some(k), Some(v)) })))
 
 // ── Phase 1: Resolve parties ─────────────────────────────────────────────────
 println("\n[Phase 1] Resolving parties...")
@@ -15,6 +33,10 @@ println("\n[Phase 1] Resolving parties...")
 def findParty(p: com.digitalasset.canton.console.ParticipantReference, name: String) =
   p.parties.list().find(_.party.toProtoPrimitive.startsWith(s"$name::"))
     .getOrElse(sys.error(s"Party '$name' not found — run setup-network first")).party
+
+print("  ZEO ... ")
+val zeo = findParty(participant1, "ZEO")
+println(s"$zeo")
 
 print("  Validator1 ... ")
 val validator1 = findParty(participant1, "Validator1")
@@ -24,179 +46,144 @@ print("  Validator2 ... ")
 val validator2 = findParty(participant2, "Validator2")
 println(s"$validator2")
 
-print("  BridgeOperator ... ")
-val bridgeOperator = findParty(participant1, "BridgeOperator")
-println(s"$bridgeOperator")
-
-print("  TokenIssuer ... ")
-val tokenIssuer = findParty(participant3, "TokenIssuer")
-println(s"$tokenIssuer")
-
-print("  EndUser ... ")
-val endUser = findParty(participant1, "EndUser")
-println(s"$endUser")
-
-print("  ZenithVB package ... ")
-val pkg = participant1.packages.find_by_module("ZenithVB").headOption
-  .getOrElse(sys.error("ZenithVB package not found — run deploy-contracts after DAR upload"))
+print("  Zenith.Evm package ... ")
+val pkg = participant1.packages.find_by_module("Zenith.Evm").headOption
+  .getOrElse(sys.error("Zenith.Evm package not found — upload zenith-evm DAR first"))
 println(s"${pkg.packageId}")
 
-// ── Phase 2: ZenithVBState ───────────────────────────────────────────────────
-println("\n[Phase 2] Deploying ZenithVBState...")
+val zeroAddr = recV("rawBytes" -> textV("0000000000000000000000000000000000000000"))
+val chainId = recV("zeo" -> partyV(zeo), "version" -> textV(""))
 
-val existingVb = participant1.ledger_api.state.acs.of_party(validator1)
-  .find(_.templateId.toString.contains("ZenithVBState"))
+// ── Phase 2: ZeoRules ────────────────────────────────────────────────────────
+println("\n[Phase 2] Deploying ZeoRules...")
 
-if (existingVb.nonEmpty) {
-  println("  ZenithVBState already exists — skipping.")
+val existingRules = participant1.ledger_api.state.acs.of_party(zeo)
+  .find(_.templateId.toString.contains("ZeoRules"))
+
+if (existingRules.nonEmpty) {
+  println("  ZeoRules already exists — skipping.")
 } else {
-  val governanceId = "zenith-vb-prod"
-  val genesisRoot  = "f09d8f7da5bc5036f8dd9536c953e2212390a46fb3e553ece2b7d419131537b1"
+  print("  ZEO: creating ZeoRules ... ")
 
-  print("  Validator1: submitting InitiateVB ... ")
-  val initVbCmd = ledger_api_utils.create(
-    pkg.packageId, "ZenithVB", "InitiateVB",
-    Map(
-      "initiator"    -> validator1,
-      "governanceId" -> governanceId,
-      "validators"   -> Seq(validator1, validator2),
-      "observers"    -> Seq(bridgeOperator, tokenIssuer, endUser),
-      "genesisRoot"  -> genesisRoot
-    )
+  val zeoRulesValue = recV(
+    "chainId"      -> chainId,
+    "proposers"    -> recV("map" -> genMapV(
+      (partyV(validator1), unitV),
+      (partyV(validator2), unitV)
+    )),
+    "validators"   -> listV(
+      recV(
+        "index"      -> intV(0),
+        "ethAddress"  -> zeroAddr,
+        "party"      -> partyV(validator1),
+        "exitAt"     -> optNone
+      ),
+      recV(
+        "index"      -> intV(1),
+        "ethAddress"  -> zeroAddr,
+        "party"      -> partyV(validator2),
+        "exitAt"     -> optNone
+      )
+    ),
+    "blockBuilder" -> enumV("EcsBlockBuilder")
   )
-  participant1.ledger_api.commands.submit(Seq(validator1), Seq(initVbCmd))
-  Thread.sleep(3000)
-  println("done")
 
-  print("  Validator1: exercising CreateVBProposal ... ")
-  val initVb = participant1.ledger_api.state.acs.of_party(validator1)
-    .find(_.templateId.toString.contains("InitiateVB"))
-    .getOrElse(sys.error("InitiateVB not found"))
+  val templateId = Identifier(
+    packageId = pkg.packageId,
+    moduleName = "Zenith.Evm.Rules",
+    entityName = "ZeoRules"
+  )
+
+  val createCmd = Command(Command.Command.Create(CreateCommand(
+    templateId = Some(templateId),
+    createArguments = zeoRulesValue.sum.record.map(Some(_)).getOrElse(None)
+  )))
+
   participant1.ledger_api.commands.submit(
-    Seq(validator1),
-    Seq(ledger_api_utils.exercise("CreateVBProposal", Map.empty[String, Any], initVb.event))
-  )
-  Thread.sleep(1500)
-  println("done")
-
-  print("  Validator2: accepting VBProposal ... ")
-  val vbProposal = participant2.ledger_api.state.acs.of_party(validator2)
-    .find(_.templateId.toString.contains("ZenithVBProposal"))
-    .getOrElse(sys.error("ZenithVBProposal not found on participant2"))
-  participant2.ledger_api.commands.submit(
-    Seq(validator2),
-    Seq(ledger_api_utils.exercise("AcceptVB", Map("validator" -> validator2), vbProposal.event))
+    actAs = Seq(zeo),
+    commands = Seq(createCmd)
   )
   Thread.sleep(2000)
   println("done")
-
-  println("  ZenithVBState created.")
 }
 
-val vbContract = participant1.ledger_api.state.acs.of_party(validator1)
-  .find(_.templateId.toString.contains("ZenithVBState"))
-  .getOrElse(sys.error("ZenithVBState not found after deployment"))
-println(s"  Contract ID: ${vbContract.contractId}")
+val rulesContract = participant1.ledger_api.state.acs.of_party(zeo)
+  .find(_.templateId.toString.contains("ZeoRules"))
+  .getOrElse(sys.error("ZeoRules not found after deployment"))
+println(s"  Contract ID: ${rulesContract.contractId}")
 
-// ── Phase 3: BridgeRegistry + BridgeWorkflow ─────────────────────────────────
-println("\n[Phase 3] Deploying bridge contracts...")
+// ── Phase 3: Initial State (genesis block) ───────────────────────────────────
+println("\n[Phase 3] Deploying initial State (genesis block)...")
 
-val bridgeId = "zenith-bridge-prod"
+val existingState = participant1.ledger_api.state.acs.of_party(zeo)
+  .find(_.templateId.toString.contains("Zenith.Evm:State"))
 
-val existingRegistry = participant1.ledger_api.state.acs.of_party(bridgeOperator)
-  .find(_.templateId.toString.contains("BridgeRegistry"))
-
-if (existingRegistry.isEmpty) {
-  print("  Creating BridgeRegistry ... ")
-  participant1.ledger_api.commands.submit(
-    Seq(bridgeOperator),
-    Seq(ledger_api_utils.create(
-      pkg.packageId, "Bridge", "BridgeRegistry",
-      Map(
-        "admin"         -> bridgeOperator,
-        "bridgeId"      -> bridgeId,
-        "assets"        -> Seq.empty,
-        "globalPaused"  -> false,
-        "observers"     -> Seq(validator1, validator2, tokenIssuer, endUser)
-      )
-    ))
-  )
-  Thread.sleep(1000)
-  println("done")
+if (existingState.nonEmpty) {
+  println("  State already exists — skipping.")
 } else {
-  println("  BridgeRegistry already exists — skipping.")
+  // Genesis block values from block-builder-node (dev chain)
+  val genesisBlockHash = "683713729fcb72be6f3d8b88c8cda3e10569d73b9640d3bf6f5184d94bd97616"
+  val genesisStateRoot = "f09d8f7da5bc5036f8dd9536c953e2212390a46fb3e553ece2b7d419131537b1"
+  val genesisReceiptsRoot = "56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"
+
+  print("  ZEO: creating initial State ... ")
+
+  val stateValue = recV(
+    "chainId" -> chainId,
+    "head" -> recV(
+      "number"         -> intV(0),
+      "stateRoot"      -> textV(genesisStateRoot),
+      "feeRecipient"   -> zeroAddr,
+      "receiptsRoot"   -> textV(genesisReceiptsRoot),
+      "logsBloom"      -> textV("00" * 256),
+      "gasLimit"       -> intV(30000000),
+      "gasUsed"        -> intV(0),
+      "timestamp"      -> intV(1687240146),
+      "extraData"      -> textV(""),
+      "baseFeePerGas"  -> intV(1000000000),
+      "blockHash"      -> textV(genesisBlockHash),
+      "withdrawals"    -> listV(),
+      "blobGasUsed"    -> intV(0),
+      "excessBlobGas"  -> intV(0)
+    ),
+    "beaconState" -> recV(
+      "balances"        -> listV(intV(0), intV(0)),
+      "withdrawalIndex" -> intV(0)
+    )
+  )
+
+  val stateTemplateId = Identifier(
+    packageId = pkg.packageId,
+    moduleName = "Zenith.Evm",
+    entityName = "State"
+  )
+
+  val stateCreateCmd = Command(Command.Command.Create(CreateCommand(
+    templateId = Some(stateTemplateId),
+    createArguments = stateValue.sum.record.map(Some(_)).getOrElse(None)
+  )))
+
+  participant1.ledger_api.commands.submit(
+    actAs = Seq(zeo),
+    commands = Seq(stateCreateCmd)
+  )
+  Thread.sleep(2000)
+  println("done")
 }
 
-val existingWorkflow = participant1.ledger_api.state.acs.of_party(bridgeOperator)
-  .find(_.templateId.toString.contains("BridgeWorkflow"))
+val stateContract = participant1.ledger_api.state.acs.of_party(zeo)
+  .find(c => c.templateId.toString.contains("State") && !c.templateId.toString.contains("Beacon"))
+  .getOrElse(sys.error("State not found after deployment"))
+println(s"  Contract ID: ${stateContract.contractId}")
 
-if (existingWorkflow.isEmpty) {
-  print("  Creating BridgeWorkflow ... ")
-  participant1.ledger_api.commands.submit(
-    Seq(bridgeOperator),
-    Seq(ledger_api_utils.create(
-      pkg.packageId, "Bridge", "BridgeWorkflow",
-      Map(
-        "admin"      -> bridgeOperator,
-        "bridgeId"   -> bridgeId,
-        "validators" -> Seq(validator1, validator2),
-        "observers"  -> Seq(tokenIssuer, endUser)
-      )
-    ))
-  )
-  Thread.sleep(1000)
-  println("done")
-} else {
-  println("  BridgeWorkflow already exists — skipping.")
-}
-
-// ── Phase 4: EVM delegation ───────────────────────────────────────────────────
-println("\n[Phase 4] Setting up EVM delegation (Validator1 → BridgeOperator)...")
-
-val existingDelegation = participant1.ledger_api.state.acs.of_party(validator1)
-  .find(_.templateId.toString.contains("EvmDelegation"))
-
-if (existingDelegation.isEmpty) {
-  print("  Validator1: proposing delegation ... ")
-  participant1.ledger_api.commands.submit(
-    Seq(validator1),
-    Seq(ledger_api_utils.create(
-      pkg.packageId, "ZenithVB", "EvmDelegationProposal",
-      Map(
-        "validator"    -> validator1,
-        "delegate"     -> bridgeOperator,
-        "governanceId" -> "zenith-vb-prod"
-      )
-    ))
-  )
-  Thread.sleep(1500)
-  println("done")
-
-  print("  BridgeOperator: accepting delegation ... ")
-  val delegationProposal = participant1.ledger_api.state.acs.of_party(bridgeOperator)
-    .find(_.templateId.toString.contains("EvmDelegationProposal"))
-    .getOrElse(sys.error("EvmDelegationProposal not found"))
-  participant1.ledger_api.commands.submit(
-    Seq(bridgeOperator),
-    Seq(ledger_api_utils.exercise("AcceptDelegation", Map.empty[String, Any], delegationProposal.event))
-  )
-  Thread.sleep(1000)
-  println("done")
-
-  println("  EvmDelegation active.")
-} else {
-  println("  EvmDelegation already exists — skipping.")
-}
-
-// ── Summary ───────────────────────────────────────────────────────────────────
+// ── Summary ──────────────────────────────────────────────────────────────────
 println("\n" + "=" * 60)
 println("Contracts deployed.")
 println("=" * 60)
-println(s"\n  VB contract:  ${vbContract.contractId}")
-println(s"  Bridge ID:    $bridgeId")
+println(s"\n  ZeoRules:  ${rulesContract.contractId}")
+println(s"  State:     ${stateContract.contractId}")
 println(s"\n  Roles:")
-println(s"    BridgeOperator: $bridgeOperator")
-println(s"    Validators:     Validator1, Validator2")
-println(s"    TokenIssuer:    $tokenIssuer")
-println(s"    EndUser:        $endUser")
-println(s"\n  EVM delegation: Validator1 -> BridgeOperator")
+println(s"    ZEO:         $zeo")
+println(s"    Validator1:  $validator1")
+println(s"    Validator2:  $validator2")
+println(s"\n  Block builder: EcsBlockBuilder (via zenith-ecs)")

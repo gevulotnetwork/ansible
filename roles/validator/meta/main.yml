@@ -2,7 +2,7 @@ dependencies: []
 
 galaxy_info:
   role_name: validator
-  author: bhechinger
+  author: gevulot
   description: Validator setup for instances
   company: "Gevulot"
   license: "Do Not Redistribute"

@@ -2,7 +2,7 @@ dependencies: []
 
 galaxy_info:
   role_name: zenith
-  author: bhechinger
+  author: gevulot
   description: Zenith setup for instances
   company: "Gevulot"
   license: "Do Not Redistribute"

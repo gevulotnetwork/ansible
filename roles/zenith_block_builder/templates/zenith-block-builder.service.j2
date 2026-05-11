@@ -1,0 +1,31 @@
+[Unit]
+Description="Zenith Block Builder on participant {{ bb.id }}"
+After=network.target zenith-deploy-contract.service
+Requires=zenith-deploy-contract.service
+PartOf=zenith.target
+
+[Service]
+Type=simple
+
+Environment=RUST_LOG=debug
+ExecStart=%h/zenith/bin/block-builder-node node \
+	--chain {{ zenith_chain }} \
+	--http --http.addr 0.0.0.0 --http.port {{ bb.http_port }} \
+	--http.api eth,net,web3,debug,testing \
+	--datadir %h/zenith/data/block-builder-{{ bb.id }} \
+	--authrpc.jwtsecret %h/zenith/data/relayer-{{ bb.id }}/jwt.hex \
+	--authrpc.port {{ bb.authrpc_port }} \
+	--port {{ bb.p2p_port }} \
+	--discovery.port {{ bb.p2p_port }} \
+	--log.file.directory %h/zenith/data/block-builder-{{ bb.id }}/logs
+
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=120
+TimeoutStopSec=30
+
+LimitNOFILE={{ canton_nofile_limit }}
+LimitNPROC={{ canton_nproc_limit }}
+
+[Install]
+WantedBy=zenith.target

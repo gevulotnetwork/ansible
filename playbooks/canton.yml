@@ -8,8 +8,8 @@
 #
 # Service startup order (managed by systemd dependencies):
 #   postgres → postgres-init → sequencer-mediator → participants
-#   → network-setup → deploy-contract → relayers → nodes → ecs
-#   → evm-explorer (indexer + web) → cloudflared
+#   → network-setup → deploy-contract → block-builders → ecs
+#   → headcaster → sequencer → evm-explorer → cloudflared
 #
 # Groups:
 #   canton_sequencers   - hosts running the sequencer-mediator
@@ -53,19 +53,22 @@
     - canton_network_setup
     - zenith_deploy_contract
 
-# Zenith services (relayers, nodes, ECS)
+# Zenith services
 - name: Zenith services
   hosts: canton_participants
   become: true
   roles:
-    - role: zenith_relayer
-      when: zenith_relayers | default([]) | length > 0
-    - role: zenith_node
-      when: zenith_nodes | default([]) | length > 0
+    - role: zenith_block_builder
+      when: zenith_block_builders | default([]) | length > 0
     - role: zenith_ecs
       when: zenith_ecs_servers | default([]) | length > 0
+    - role: zenith_headcaster
+      when: zenith_headcasters | default([]) | length > 0
+    - role: zenith_sequencer
+      when: zenith_sequencers | default([]) | length > 0
   post_tasks:
     - name: Start zenith.target (brings up all zenith services)
+      become: true
       become_user: "{{ canton_user }}"
       ansible.builtin.command:
         cmd: systemctl --user restart zenith.target
@@ -81,11 +84,11 @@
   become: true
   roles:
     - canton_evm_explorer
-#    - cloudflared
-#
-## Ethereum test transactions (optional)
-#- name: Ethereum test transactions
-#  hosts: canton_nodes
-#  become: true
-#  roles:
-#    - ethereum_example_tx
+    - cloudflared
+
+# Ethereum test transactions (disabled — old zenith-canton contracts)
+# - name: Ethereum test transactions
+#   hosts: canton_participants
+#   become: true
+#   roles:
+#     - ethereum_example_tx

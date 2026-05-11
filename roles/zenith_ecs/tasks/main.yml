@@ -51,7 +51,7 @@
   ansible.builtin.command:
     cmd: "systemctl --user restart zenith-ecs-{{ ecs.id }}.service"
   changed_when: true
-  when: zenith_binaries_changed | default(false)
+  when: zenith_evm_binaries_changed | default(false)
   environment:
     XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
     DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"

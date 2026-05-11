@@ -1,11 +1,8 @@
 #!/bin/bash
 # Ansible SSH wrapper for GCP instances
 #
-# Ansible calls: ssh_executable [ssh_options] hostname [command...]
-# gcloud expects: gcloud compute ssh INSTANCE -- [ssh_options] [command...]
-#
-# This script extracts the hostname from Ansible's SSH args and
-# restructures them for gcloud compute ssh.
+# Uses gcloud to set up a ControlMaster SSH connection on first use,
+# then reuses it for subsequent calls (avoiding gcloud overhead per task).
 
 GCP_PROJECT="${GCP_PROJECT:-zenith-development-489709}"
 GCP_ZONE="${GCP_ZONE:-europe-west3-a}"
@@ -27,14 +24,11 @@ for arg in "$@"; do
 
     case "$arg" in
         --)
-            # Everything after -- is the remote command
             remote_cmd+=("$arg")
             ;;
         -*)
             ssh_opts+=("$arg")
-            # Check if this option takes a parameter
             flag="${arg#-}"
-            # Handle single-char flags (e.g., -o, -i, -p)
             for opt in $opts_with_param; do
                 if [[ "$flag" == "$opt" ]]; then
                     skip_next=true
@@ -57,9 +51,24 @@ if [ -z "$hostname" ]; then
     exit 1
 fi
 
-exec gcloud compute ssh \
+# Persistent ControlMaster socket per host
+SOCKET_DIR="/tmp/gcloud-ssh-sockets"
+mkdir -p "$SOCKET_DIR"
+SOCKET="$SOCKET_DIR/$hostname"
+
+# If a ControlMaster socket already exists and is alive, use plain ssh
+if ssh -O check -S "$SOCKET" "$hostname" 2>/dev/null; then
+    exec ssh -S "$SOCKET" "${ssh_opts[@]}" "$hostname" "${remote_cmd[@]}"
+fi
+
+# No active socket — use gcloud to establish a ControlMaster connection
+# First call: gcloud sets up the connection and leaves a persistent socket
+gcloud compute ssh \
     --zone "$GCP_ZONE" \
     --project "$GCP_PROJECT" \
     --quiet \
     "$hostname" \
-    -- "${ssh_opts[@]}" "${remote_cmd[@]}"
+    -- -o "ControlMaster=auto" \
+       -o "ControlPath=$SOCKET" \
+       -o "ControlPersist=600" \
+       "${ssh_opts[@]}" "${remote_cmd[@]}"

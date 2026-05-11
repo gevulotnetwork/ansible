@@ -9,15 +9,19 @@ Wants=canton-{{ p.name }}.service
 {% endfor %}
 Wants=canton-network-setup.service
 Wants=zenith-deploy-contract.service
-{% for r in zenith_relayers | default([]) %}
-Wants=zenith-relayer-{{ r.id }}.service
-{% endfor %}
-{% for n in zenith_nodes | default([]) %}
-Wants=zenith-node-{{ n.id }}.service
+{% for bb in zenith_block_builders | default([]) %}
+Wants=zenith-block-builder-{{ bb.id }}.service
 {% endfor %}
 {% for e in zenith_ecs_servers | default([]) %}
 Wants=zenith-ecs-{{ e.id }}.service
 {% endfor %}
+{% for hc in zenith_headcasters | default([]) %}
+Wants=zenith-headcaster-{{ hc.id }}.service
+{% endfor %}
+{% for sq in zenith_sequencers | default([]) %}
+Wants=zenith-sequencer-{{ sq.id }}.service
+{% endfor %}
+Wants=canton-evm-explorer.target
 
 [Install]
 WantedBy=default.target
