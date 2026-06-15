@@ -5,15 +5,26 @@
 podman_auth_json:
   auths:
     ghcr.io:
-      auth: ""
+      auth: "="
 
 github_pat: ""
+cloudflared_tunnel_token: ""
 
-canton_version: "3.4.11"
+zenith_evm_dist_dir: "{{ playbook_dir }}/../../zenith-evm/dist"
+canton_version: "3.6.0"
 canton_edition: "open-source"
 canton_java_xmx: 2g
 canton_nofile_limit: 65536
 canton_nproc_limit: 4096
+
+# Storage
+canton_participant_storage_type: postgres
+canton_sequencer_mediator_storage_type: postgres
+canton_sequencer_type: BFT
+canton_postgres_host: "127.0.0.1"
+canton_postgres_port: "5432"
+canton_postgres_user: canton
+canton_postgres_password: canton
 
 # Shared paths (used across all canton roles)
 canton_user: canton
@@ -34,44 +45,63 @@ zenith_base_dir: "{{ canton_user_home }}/zenith"
 zenith_bin_dir: "{{ zenith_base_dir }}/bin"
 zenith_data_dir: "{{ zenith_base_dir }}/data"
 zenith_etc_dir: "{{ zenith_base_dir }}/etc"
-canton_participant_storage_type: memory
-canton_sequencer_mediator_storage_type: memory
-canton_sequencer_type: BFT
+
+# ─────────────────────────────────────────────────────────
+# PostgreSQL databases to create
+# ─────────────────────────────────────────────────────────
+canton_postgres_databases:
+  - sequencer1
+  - mediator1
+  - participant1
+  - participant2
+  - participant3
+  - canton_evm_explorer
 
 # ─────────────────────────────────────────────────────────
 # Canton participants to deploy
 # ─────────────────────────────────────────────────────────
 canton_participants:
   - name: participant1
-    description: "Alice - Signatory"
+    description: "Validator1 - Signatory with Zenith EVM"
     config_file: participant1.conf
     admin_api_port: 5012
     ledger_api_port: 5011
     http_ledger_api_port: 5013
+    extension:
+      name: zenith-evm
+      display_name: "Zenith EVM Execution Service"
+      host: "127.0.0.1"
+      port: 1606
+      declared_functions:
+        - { function_id: "build-block", config_hash: "" }
+        - { function_id: "get-header", config_hash: "" }
+        - { function_id: "get-receipt", config_hash: "" }
 
   - name: participant2
-    description: "Bob - Signatory"
+    description: "Validator2 - Signatory with Zenith EVM"
     config_file: participant2.conf
     admin_api_port: 5022
     ledger_api_port: 5021
     http_ledger_api_port: 5023
+    extension:
+      name: zenith-evm
+      display_name: "Zenith EVM Execution Service"
+      host: "127.0.0.1"
+      port: 1607
+      declared_functions:
+        - { function_id: "build-block", config_hash: "" }
+        - { function_id: "get-header", config_hash: "" }
+        - { function_id: "get-receipt", config_hash: "" }
 
   - name: participant3
-    description: "Charlie - Observer"
+    description: "Observer - Read-only without EVM"
     config_file: participant3.conf
     admin_api_port: 5032
     ledger_api_port: 5031
     http_ledger_api_port: 5033
 
 # ─────────────────────────────────────────────────────────
-# Canton network topology (global view, shared by all hosts)
-#
-# Every host references this to know where other services
-# live (for remote-admin.conf, sequencer URLs, monitoring).
-#
-# address: the IP/hostname services use to reach this node
-#   - use 127.0.0.1 for single-machine deployments
-#   - use real IPs for multi-machine deployments
+# Canton network topology
 # ─────────────────────────────────────────────────────────
 canton_network:
   sequencer_mediator:
@@ -85,7 +115,7 @@ canton_network:
     participant1:
       host: canton-test-01
       address: "127.0.0.1"
-      description: "Alice - Signatory"
+      description: "Validator1 - Signatory"
       admin_api_port: 5012
       ledger_api_port: 5011
       http_ledger_api_port: 5013
@@ -93,7 +123,7 @@ canton_network:
     participant2:
       host: canton-test-01
       address: "127.0.0.1"
-      description: "Bob - Signatory"
+      description: "Validator2 - Signatory"
       admin_api_port: 5022
       ledger_api_port: 5021
       http_ledger_api_port: 5023
@@ -101,60 +131,58 @@ canton_network:
     participant3:
       host: canton-test-01
       address: "127.0.0.1"
-      description: "Charlie - Observer"
+      description: "Observer - Read-only"
       admin_api_port: 5032
       ledger_api_port: 5031
       http_ledger_api_port: 5033
 
-  mock_services:
-    mock-service-1:
-      host: canton-test-01
-      address: "127.0.0.1"
-      description: "Participant 1 (Alice)"
-      port: 8080
-
-    mock-service-2:
-      host: canton-test-01
-      address: "127.0.0.1"
-      description: "Participant 2 (Bob)"
-      port: 8081
-
 # ─────────────────────────────────────────────────────────
-# Zenith services to deploy (relayers, nodes, ECS)
+# Zenith services
 # ─────────────────────────────────────────────────────────
-zenith_relayers:
+zenith_block_builders:
   - id: 1
-    canton_addr: "127.0.0.1:5011"
-    party_name: Validator1
-    p2p_port: 30303
-    http_port: 8545
-    authrpc_port: 8551
+    http_port: 32998
+    authrpc_port: 9551
+    p2p_port: 30403
 
   - id: 2
-    canton_addr: "127.0.0.1:5021"
-    party_name: Validator2
-    p2p_port: 30304
-    http_port: 8546
-    authrpc_port: 8552
-
-zenith_nodes:
-  - id: 1
-    canton_addr: "127.0.0.1:5011"
-    party_name: Validator1
-    rpc_port: 32998
-    relayer_authrpc_port: 8551
-
-  - id: 2
-    canton_addr: "127.0.0.1:5021"
-    party_name: Validator2
-    rpc_port: 32999
-    relayer_authrpc_port: 8552
+    http_port: 32999
+    authrpc_port: 9552
+    p2p_port: 30404
 
 zenith_ecs_servers:
   - id: 1
     port: 1606
-    node_rpc_port: 32998
+    block_builder_port: 32998
 
   - id: 2
     port: 1607
-    node_rpc_port: 32999
+    block_builder_port: 32999
+
+zenith_headcasters:
+  - id: 1
+    rpc_port: 32998               # block-builder-1 HTTP RPC
+    listen_port: 9000             # libp2p listen
+    canton_endpoint: "http://127.0.0.1:5011"  # participant1 ledger API
+    engine_url: "http://127.0.0.1:9551"       # block-builder-1 authrpc (Engine API)
+    engine_jwt_file: "%h/zenith/data/relayer-1/jwt.hex"
+
+  - id: 2
+    rpc_port: 32998               # block-builder-1 HTTP RPC (fetch blocks from builder that has them)
+    listen_port: 9001             # libp2p listen
+    canton_endpoint: "http://127.0.0.1:5021"  # participant2 ledger API
+    engine_url: "http://127.0.0.1:9552"       # block-builder-2 authrpc (Engine API)
+    engine_jwt_file: "%h/zenith/data/relayer-2/jwt.hex"
+
+zenith_sequencers:
+  - id: 1
+    http_port: 9200
+    validator_id: 1                         # maps to ZENITH_VALIDATOR1_PARTY env var
+    canton_ledger_api_port: 5011            # participant1 ledger API
+
+zenith_validators:
+  - id: 1
+    validator_id: 1                         # maps to ZENITH_VALIDATOR1_PARTY env var
+    canton_ledger_api_port: 5011            # participant1 ledger API
+    block_time: 5
+    observers: [1]                          # sequencer (Validator1) needs to be observer

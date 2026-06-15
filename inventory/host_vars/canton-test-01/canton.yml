@@ -2,133 +2,13 @@
 # canton-test-01: All-in-one Zenith-Canton deployment
 # ─────────────────────────────────────────────────────────
 
-# Canton JAR - use local SNAPSHOT build instead of downloading a release
-canton_jar_local: "canton-open-source-3.5.0-SNAPSHOT.jar"
-canton_version: "3.5.0-SNAPSHOT"
-
-# Sequencer-Mediator
+# Sequencer-Mediator ports
 canton_sequencer_mediator_config: sequencer-mediator.conf
 canton_sequencer_public_api_port: 5008
 canton_sequencer_admin_api_port: 5009
 canton_mediator_admin_api_port: 5007
 
-# Mock Services (legacy - disabled)
-canton_mock_services: []
-
-# Participants
-canton_participants:
-  - name: participant1
-    description: "Validator1 - Signatory"
-    config_file: participant1.conf
-    admin_api_port: 5012
-    ledger_api_port: 5011
-    http_ledger_api_port: 5013
-    extension:
-      name: test-oracle
-      display_name: "Test Oracle"
-      host: "127.0.0.1"
-      port: 8080
-      use_tls: false
-      connect_timeout: 2s
-      request_timeout: 5s
-      max_total_timeout: 10s
-      max_retries: 1
-      declared_functions:
-        - { function_id: "echo", config_hash: "00000000" }
-        - { function_id: "error-400", config_hash: "00000000" }
-        - { function_id: "error-500", config_hash: "00000000" }
-
-  - name: participant2
-    description: "Validator2 - Signatory"
-    config_file: participant2.conf
-    admin_api_port: 5022
-    ledger_api_port: 5021
-    http_ledger_api_port: 5023
-    extension:
-      name: test-oracle
-      display_name: "Test Oracle"
-      host: "127.0.0.1"
-      port: 8081
-      use_tls: false
-      connect_timeout: 2s
-      request_timeout: 5s
-      max_total_timeout: 10s
-      max_retries: 1
-      declared_functions:
-        - { function_id: "echo", config_hash: "00000000" }
-        - { function_id: "error-400", config_hash: "00000000" }
-        - { function_id: "error-500", config_hash: "00000000" }
-
-  - name: participant3
-    description: "Observer"
-    config_file: participant3.conf
-    admin_api_port: 5032
-    ledger_api_port: 5031
-    http_ledger_api_port: 5033
-
-# PostgreSQL databases
-canton_postgres_databases:
-  - sequencer1
-  - mediator1
-  - participant1
-  - participant2
-  - participant3
-  - canton_evm_explorer
-
-# ─────────────────────────────────────────────────────────
-# Zenith Relayers
-# ─────────────────────────────────────────────────────────
-zenith_relayers:
-  - id: 1
-    canton_addr: "127.0.0.1:5011"
-    party_name: Validator1
-    p2p_port: 30303
-    http_port: 8545
-    authrpc_port: 8551
-
-  - id: 2
-    canton_addr: "127.0.0.1:5021"
-    party_name: Validator2
-    p2p_port: 30304
-    http_port: 8546
-    authrpc_port: 8552
-
-# ─────────────────────────────────────────────────────────
-# Zenith Nodes
-# ─────────────────────────────────────────────────────────
-zenith_nodes:
-  - id: 1
-    rpc_port: 32998
-    relayer_authrpc_port: 8551
-    canton_addr: "127.0.0.1:5011"
-    party_name: Validator1
-
-  - id: 2
-    rpc_port: 32999
-    relayer_authrpc_port: 8552
-    canton_addr: "127.0.0.1:5021"
-    party_name: Validator2
-
-# ─────────────────────────────────────────────────────────
-# Zenith External Call Servers
-# ─────────────────────────────────────────────────────────
-zenith_ecs_servers:
-  - id: 1
-    port: 1606
-    node_rpc_port: 32998
-
-  - id: 2
-    port: 1607
-    node_rpc_port: 32999
-
-# ─────────────────────────────────────────────────────────
-# Cloudflare Tunnel
-# ─────────────────────────────────────────────────────────
-cloudflared_tunnel_token: ""  # Set via vault or --extra-vars
-
-# ─────────────────────────────────────────────────────────
 # All services on this host (for Vector / monitoring)
-# ─────────────────────────────────────────────────────────
 canton_services:
   - name: canton-postgres
     type: postgres
@@ -144,14 +24,10 @@ canton_services:
     type: setup
   - name: zenith-deploy-contract
     type: setup
-  - name: zenith-relayer-1
-    type: relayer
-  - name: zenith-relayer-2
-    type: relayer
-  - name: zenith-node-1
-    type: node
-  - name: zenith-node-2
-    type: node
+  - name: zenith-block-builder-1
+    type: block-builder
+  - name: zenith-block-builder-2
+    type: block-builder
   - name: zenith-ecs-1
     type: ecs
   - name: zenith-ecs-2
@@ -160,5 +36,9 @@ canton_services:
     type: explorer
   - name: canton-evm-explorer
     type: explorer
+  - name: zenith-headcaster-1
+    type: headcaster
+  - name: zenith-sequencer-1
+    type: sequencer
   - name: cloudflared
     type: tunnel
