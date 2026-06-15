@@ -12,6 +12,7 @@ WorkingDirectory=%h/canton
 
 ExecStart=/usr/bin/java \
     -Xmx{{ canton_java_xmx }} \
+    -Xss4m \
     -jar %h/canton/lib/canton.jar \
     daemon \
     -c %h/canton/configs/{{ participant.config_file }} \

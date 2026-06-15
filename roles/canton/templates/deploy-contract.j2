@@ -1,7 +1,28 @@
 #!/bin/bash
 # Deploy bridge contracts (VBState, BridgeRegistry, BridgeWorkflow, EVM delegation)
 DIST_DIR="{{ canton_base_dir }}"
+BB1_RPC="http://127.0.0.1:{{ zenith_block_builders[0].http_port }}"
+
+# Wait for block-builder to be ready and fetch genesis hash
+echo "Fetching genesis block hash from $BB1_RPC ..."
+GENESIS_HASH=""
+for i in $(seq 1 30); do
+  GENESIS_HASH=$(curl -sf "$BB1_RPC" -X POST \
+    -H 'Content-Type: application/json' \
+    -d '{"jsonrpc":"2.0","method":"eth_getBlockByNumber","params":["0x0",false],"id":1}' \
+    | jq -r '.result.hash // empty' 2>/dev/null | sed 's/^0x//')
+  if [ -n "$GENESIS_HASH" ]; then break; fi
+  echo "  block-builder not ready, retry $i/30..."
+  sleep 2
+done
+if [ -z "$GENESIS_HASH" ]; then
+  echo "ERROR: Could not fetch genesis hash from block-builder"
+  exit 1
+fi
+echo "Genesis hash: $GENESIS_HASH"
+
 exec java -Xmx{{ canton_java_xmx }} \
+    -Dgenesis.hash="$GENESIS_HASH" \
     -jar "$DIST_DIR/lib/canton.jar" run \
     -c "$DIST_DIR/configs/remote-admin.conf" \
     "$DIST_DIR/scripts/deploy-contracts.canton"

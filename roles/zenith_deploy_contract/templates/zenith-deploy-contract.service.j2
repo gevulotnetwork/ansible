@@ -1,7 +1,8 @@
 [Unit]
 Description="Deploy Zenith contract on Canton"
 Requires=canton-network-setup.service
-After=canton-network-setup.service
+Wants=zenith-block-builder-1.service
+After=canton-network-setup.service zenith-block-builder-1.service
 PartOf=zenith.target
 
 [Service]

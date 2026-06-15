@@ -1,7 +1,8 @@
 // Zenith EVM — Deploy ZeoRules + genesis Block
 //
 // Parties (must already exist from setup-network):
-//   participant1: ZEO, Validator1
+//   zeo: decentralized namespace (co-owned by participant1 + participant2)
+//   participant1: Validator1
 //   participant2: Validator2
 
 import com.daml.ledger.api.v2.value._
@@ -41,8 +42,8 @@ def findParty(p: com.digitalasset.canton.console.ParticipantReference, name: Str
   p.parties.list().find(_.party.toProtoPrimitive.startsWith(s"$name::"))
     .getOrElse(sys.error(s"Party '$name' not found — run setup-network first")).party
 
-print("  ZEO ... ")
-val zeo = findParty(participant1, "ZEO")
+print("  zeo ... ")
+val zeo = findParty(participant1, "zeo")
 println(s"$zeo")
 
 print("  Validator1 ... ")
@@ -132,8 +133,8 @@ val existingBlock = participant1.ledger_api.state.acs.of_party(zeo)
 if (existingBlock.nonEmpty) {
   println("  Block already exists — skipping.")
 } else {
-  // Genesis block hash from block-builder-node (custom Cancun chain, no Prague)
-  val genesisBlockHash = "d361184ceb0809dc2c1745b6de9bee7edfb2fb6870ee3a82fef8e6a84dbff3da"
+  val genesisBlockHash = sys.props.getOrElse("genesis.hash",
+    sys.error("genesis.hash system property required — pass -Dgenesis.hash=..."))
 
   print("  ZEO: creating genesis Block ... ")
 

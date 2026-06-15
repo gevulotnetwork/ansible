@@ -4,7 +4,8 @@
 // and uploads the DAR. Idempotent: safe to re-run.
 //
 // Parties:
-//   participant1: ZEO, Validator1
+//   zeo: decentralized namespace (co-owned by participant1 + participant2)
+//   participant1: Validator1
 //   participant2: Validator2
 //   participant3: (observer)
 
@@ -93,6 +94,9 @@ println("done")
 println("\n[Phase 4] Creating parties...")
 println("  (Each party requires a topology transaction on the synchronizer.)")
 
+val synchronizerId = participant1.synchronizers.id_of(SynchronizerAlias.tryCreate("da"))
+
+// Validator1 and Validator2 are regular single-owner parties
 def findOrCreate(p: com.digitalasset.canton.console.ParticipantReference, name: String) = {
   print(s"  $name ... ")
   val existing = p.parties.list().find(_.party.toProtoPrimitive.startsWith(s"$name::")).map(_.party)
@@ -107,17 +111,67 @@ def findOrCreate(p: com.digitalasset.canton.console.ParticipantReference, name: 
   }
 }
 
-val zeo        = findOrCreate(participant1, "ZEO")
 val validator1 = findOrCreate(participant1, "Validator1")
 val validator2 = findOrCreate(participant2, "Validator2")
+
+// ZEO uses a decentralized namespace co-owned by both participants
+print("  zeo ... ")
+val existingZeo = participant1.parties.list()
+  .find(_.party.toProtoPrimitive.startsWith("zeo::"))
+  .map(_.party)
+
+val zeo = existingZeo match {
+  case Some(party) =>
+    println(s"exists: $party")
+    party
+  case None =>
+    // Both participants propose the decentralized namespace
+    val namespaceTx = participant1.topology.decentralized_namespaces.propose_new(
+      owners = Set(participant1.namespace, participant2.namespace),
+      threshold = PositiveInt.one,
+      store = synchronizerId,
+      mustFullyAuthorize = false,
+    )
+    participant2.topology.decentralized_namespaces.propose_new(
+      owners = Set(participant1.namespace, participant2.namespace),
+      threshold = PositiveInt.one,
+      store = synchronizerId,
+      mustFullyAuthorize = false,
+    )
+
+    // Wait for the namespace to become active
+    val namespace = namespaceTx.mapping.namespace
+    utils.retry_until_true {
+      participant1.topology.decentralized_namespaces
+        .list(synchronizerId, filterNamespace = namespace.filterString)
+        .nonEmpty
+    }
+
+    // Create zeo party under the decentralized namespace
+    val partyId = PartyId(UniqueIdentifier.tryCreate("zeo", namespace))
+
+    // Map ZEO to participant1 (Submission permission — can submit commands as ZEO)
+    participant1.topology.party_to_participant_mappings.propose(
+      partyId,
+      Seq((participant1, ParticipantPermission.Submission)),
+      PositiveInt.one,
+      store = synchronizerId,
+    )
+    utils.retry_until_true {
+      participant1.topology.party_to_participant_mappings
+        .list(synchronizerId, filterParty = partyId.filterString)
+        .nonEmpty
+    }
+
+    println(s"created (decentralized, co-owned): $partyId")
+    partyId
+}
 
 // ── Phase 5: Upload DAR ──────────────────────────────────────────────────────
 println("\n[Phase 5] Uploading DAR...")
 val darPath = Option(System.getProperty("dar.path"))
   .getOrElse(sys.error("dar.path system property required"))
 println(s"  DAR: $darPath")
-
-val synchronizerId = participant1.synchronizers.id_of(SynchronizerAlias.tryCreate("da"))
 
 def uploadDar(p: com.digitalasset.canton.console.ParticipantReference, name: String): Unit = {
   print(s"  Uploading to $name... ")
@@ -149,7 +203,7 @@ println("Network setup complete.")
 println("=" * 60)
 println("\nParties by participant:")
 println("  participant1:")
-println(s"    ZEO:        $zeo")
-println(s"    Validator1: $validator1")
+println(s"    zeo (decentralized): $zeo")
+println(s"    Validator1:          $validator1")
 println("  participant2:")
-println(s"    Validator2: $validator2")
+println(s"    Validator2:          $validator2")
