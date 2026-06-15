@@ -1,5 +1,3 @@
-# canton_dist_dir: must be set in inventory (path to built artifacts)
-
 canton_user: canton
 canton_group: canton
 canton_user_home: "/home/{{ canton_user }}"
@@ -27,21 +25,34 @@ zenith_evm_github_repo: zenith-network/zenith-evm
 zenith_download_dir: /tmp/zenith-releases
 zenith_evm_arch: x86_64-unknown-linux-gnu
 
-block_builder_version: "0.1.1"
-zenith_ecs_version: "0.1.1"
-headcaster_version: "0.1.1"
-sequencer_version: "0.1.1"
+block_builder_version: "0.1.2"
+zenith_ecs_version: "0.1.2"
+headcaster_version: "0.1.2"
+sequencer_version: "0.1.3"
+validator_version: "0.1.3"
+
+# Canton toolchain (canton.jar, damlc) from GitHub releases
+toolchain_version: "0.2.2"
+toolchain_release_assets:
+  - name: canton.jar
+    asset: canton.jar
+  - name: damlc.tar.gz
+    asset: damlc.tar.gz
 
 zenith_evm_release_assets:
   - name: block-builder-node
     release_tag: "block-builder-node-v{{ block_builder_version }}"
     asset: "block-builder-node-block-builder-node-v{{ block_builder_version }}-{{ zenith_evm_arch }}.tar.gz"
   - name: zenith-ecs
+    binary: zenith-evm-ecs
     release_tag: "zenith-ecs-v{{ zenith_ecs_version }}"
-    asset: "zenith-ecs-zenith-ecs-v{{ zenith_ecs_version }}-{{ zenith_evm_arch }}.tar.gz"
+    asset: "zenith-evm-ecs-zenith-ecs-v{{ zenith_ecs_version }}-{{ zenith_evm_arch }}.tar.gz"
   - name: headcaster
     release_tag: "headcaster-v{{ headcaster_version }}"
     asset: "headcaster-headcaster-v{{ headcaster_version }}-{{ zenith_evm_arch }}.tar.gz"
   - name: sequencer
     release_tag: "sequencer-v{{ sequencer_version }}"
     asset: "sequencer-sequencer-v{{ sequencer_version }}-{{ zenith_evm_arch }}.tar.gz"
+  - name: validator
+    release_tag: "validator-v{{ validator_version }}"
+    asset: "validator-validator-v{{ validator_version }}-{{ zenith_evm_arch }}.tar.gz"

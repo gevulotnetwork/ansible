@@ -1,4 +1,4 @@
-// Zenith EVM — Deploy ZeoRules + initial State
+// Zenith EVM — Deploy ZeoRules + genesis Block
 //
 // Parties (must already exist from setup-network):
 //   participant1: ZEO, Validator1
@@ -18,6 +18,9 @@ def partyV(p: com.digitalasset.canton.topology.PartyId) = Value(Value.Sum.Party(
 def intV(n: Long) = Value(Value.Sum.Int64(n))
 def textV(s: String) = Value(Value.Sum.Text(s))
 def boolV(b: Boolean) = Value(Value.Sum.Bool(b))
+def numericV(s: String) = Value(Value.Sum.Numeric(s))
+// U64 is newtype U64 = U64 (Numeric 0) — not transparent in LF 2.dev
+def u64V(n: Long) = recV("" -> numericV(n.toString))
 val optNone = Value(Value.Sum.Optional(Optional(None)))
 def listV(vs: Value*) = Value(Value.Sum.List(com.daml.ledger.api.v2.value.List(vs)))
 def recV(fields: (String, Value)*) =
@@ -26,6 +29,10 @@ def varV(tag: String, v: Value) = Value(Value.Sum.Variant(Variant(constructor = 
 def enumV(tag: String) = Value(Value.Sum.Enum(com.daml.ledger.api.v2.value.Enum(constructor = tag)))
 def genMapV(entries: (Value, Value)*) =
   Value(Value.Sum.GenMap(GenMap(entries = entries.map { case (k, v) => GenMap.Entry(Some(k), Some(v)) })))
+
+// Set Party helper: DA.Set.Set is a record { map : GenMap Party () }
+def setV(entries: (Value, Value)*) = recV("map" -> genMapV(entries: _*))
+def emptySetV = recV("map" -> genMapV())
 
 // ── Phase 1: Resolve parties ─────────────────────────────────────────────────
 println("\n[Phase 1] Resolving parties...")
@@ -47,11 +54,12 @@ val validator2 = findParty(participant2, "Validator2")
 println(s"$validator2")
 
 print("  Zenith.Evm package ... ")
-val pkg = participant1.packages.find_by_module("Zenith.Evm").headOption
+val pkg = participant1.packages.find_by_module("Zenith.Evm.Rules").headOption
   .getOrElse(sys.error("Zenith.Evm package not found — upload zenith-evm DAR first"))
 println(s"${pkg.packageId}")
 
-val zeroAddr = recV("rawBytes" -> textV("0000000000000000000000000000000000000000"))
+// Address is now BytesHex (plain text), not a record
+val zeroAddr = textV("0000000000000000000000000000000000000000")
 val chainId = recV("zeo" -> partyV(zeo), "version" -> textV(""))
 
 // ── Phase 2: ZeoRules ────────────────────────────────────────────────────────
@@ -65,27 +73,27 @@ if (existingRules.nonEmpty) {
 } else {
   print("  ZEO: creating ZeoRules ... ")
 
+  // Validators: Map U64 Validator (U64 = newtype around Numeric 0)
   val zeoRulesValue = recV(
     "chainId"      -> chainId,
-    "proposers"    -> recV("map" -> genMapV(
+    "proposers"    -> setV(
       (partyV(validator1), unitV),
       (partyV(validator2), unitV)
-    )),
-    "validators"   -> listV(
-      recV(
-        "index"      -> intV(0),
-        "ethAddress"  -> zeroAddr,
-        "party"      -> partyV(validator1),
-        "exitAt"     -> optNone
-      ),
-      recV(
-        "index"      -> intV(1),
-        "ethAddress"  -> zeroAddr,
-        "party"      -> partyV(validator2),
-        "exitAt"     -> optNone
-      )
     ),
-    "blockBuilder" -> enumV("EcsBlockBuilder")
+    "validators"   -> genMapV(
+      (u64V(0), recV(
+        "index"      -> u64V(0),
+        "ethAddress"  -> zeroAddr,
+        "party"      -> partyV(validator1)
+      )),
+      (u64V(1), recV(
+        "index"      -> u64V(1),
+        "ethAddress"  -> zeroAddr,
+        "party"      -> partyV(validator2)
+      ))
+    ),
+    "blockBuilder" -> enumV("EcsBlockBuilder"),
+    "observers"    -> emptySetV
   )
 
   val templateId = Identifier(
@@ -112,76 +120,140 @@ val rulesContract = participant1.ledger_api.state.acs.of_party(zeo)
   .getOrElse(sys.error("ZeoRules not found after deployment"))
 println(s"  Contract ID: ${rulesContract.contractId}")
 
-// ── Phase 3: Initial State (genesis block) ───────────────────────────────────
-println("\n[Phase 3] Deploying initial State (genesis block)...")
+// ── Phase 3: Genesis Block ───────────────────────────────────────────────────
+println("\n[Phase 3] Deploying genesis Block...")
 
-val existingState = participant1.ledger_api.state.acs.of_party(zeo)
-  .find(_.templateId.toString.contains("Zenith.Evm:State"))
+val existingBlock = participant1.ledger_api.state.acs.of_party(zeo)
+  .find(c => {
+    val t = c.templateId.toString
+    t.contains("Block") && !t.contains("BlockProposal") && !t.contains("BlockBuilder")
+  })
 
-if (existingState.nonEmpty) {
-  println("  State already exists — skipping.")
+if (existingBlock.nonEmpty) {
+  println("  Block already exists — skipping.")
 } else {
-  // Genesis block values from block-builder-node (dev chain)
-  val genesisBlockHash = "683713729fcb72be6f3d8b88c8cda3e10569d73b9640d3bf6f5184d94bd97616"
-  val genesisStateRoot = "f09d8f7da5bc5036f8dd9536c953e2212390a46fb3e553ece2b7d419131537b1"
-  val genesisReceiptsRoot = "56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"
+  // Genesis block hash from block-builder-node (custom Cancun chain, no Prague)
+  val genesisBlockHash = "d361184ceb0809dc2c1745b6de9bee7edfb2fb6870ee3a82fef8e6a84dbff3da"
 
-  print("  ZEO: creating initial State ... ")
+  print("  ZEO: creating genesis Block ... ")
 
-  val stateValue = recV(
+  // Block template: chainId, hash (B256=text), beaconState, observers
+  // BeaconState: balances (Map U64 U64), withdrawalIndex (Int)
+  val blockValue = recV(
     "chainId" -> chainId,
-    "head" -> recV(
-      "number"         -> intV(0),
-      "stateRoot"      -> textV(genesisStateRoot),
-      "feeRecipient"   -> zeroAddr,
-      "receiptsRoot"   -> textV(genesisReceiptsRoot),
-      "logsBloom"      -> textV("00" * 256),
-      "gasLimit"       -> intV(30000000),
-      "gasUsed"        -> intV(0),
-      "timestamp"      -> intV(1687240146),
-      "extraData"      -> textV(""),
-      "baseFeePerGas"  -> intV(1000000000),
-      "blockHash"      -> textV(genesisBlockHash),
-      "withdrawals"    -> listV(),
-      "blobGasUsed"    -> intV(0),
-      "excessBlobGas"  -> intV(0)
-    ),
+    "hash" -> textV(genesisBlockHash),
     "beaconState" -> recV(
-      "balances"        -> listV(intV(0), intV(0)),
+      "balances"        -> genMapV(
+        (u64V(0), u64V(0)),
+        (u64V(1), u64V(0))
+      ),
       "withdrawalIndex" -> intV(0)
+    ),
+    "observers" -> setV(
+      (partyV(validator1), unitV),
+      (partyV(validator2), unitV)
     )
   )
 
-  val stateTemplateId = Identifier(
+  val blockTemplateId = Identifier(
     packageId = pkg.packageId,
-    moduleName = "Zenith.Evm",
-    entityName = "State"
+    moduleName = "Zenith.Evm.Block",
+    entityName = "Block"
   )
 
-  val stateCreateCmd = Command(Command.Command.Create(CreateCommand(
-    templateId = Some(stateTemplateId),
-    createArguments = stateValue.sum.record.map(Some(_)).getOrElse(None)
+  val blockCreateCmd = Command(Command.Command.Create(CreateCommand(
+    templateId = Some(blockTemplateId),
+    createArguments = blockValue.sum.record.map(Some(_)).getOrElse(None)
   )))
 
   participant1.ledger_api.commands.submit(
     actAs = Seq(zeo),
-    commands = Seq(stateCreateCmd)
+    commands = Seq(blockCreateCmd)
   )
-  Thread.sleep(2000)
+  Thread.sleep(3000)
   println("done")
 }
 
-val stateContract = participant1.ledger_api.state.acs.of_party(zeo)
-  .find(c => c.templateId.toString.contains("State") && !c.templateId.toString.contains("Beacon"))
-  .getOrElse(sys.error("State not found after deployment"))
-println(s"  Contract ID: ${stateContract.contractId}")
+val blockContract = participant1.ledger_api.state.acs.of_party(zeo)
+  .find(c => {
+    val t = c.templateId.toString
+    t.contains("Block") && !t.contains("BlockProposal") && !t.contains("BlockBuilder")
+  })
+  .getOrElse(sys.error("Block not found after deployment"))
+println(s"  Contract ID: ${blockContract.contractId}")
+
+// ── Phase 4: BlockProposals ──────────────────────────────────────────────────
+println("\n[Phase 4] Deploying BlockProposals...")
+
+val proposalTemplateId = Identifier(
+  packageId = pkg.packageId,
+  moduleName = "Zenith.Evm.Rules",
+  entityName = "BlockProposal"
+)
+
+def createBlockProposal(
+  p: com.digitalasset.canton.console.ParticipantReference,
+  proposer: com.digitalasset.canton.topology.PartyId,
+  name: String
+): Unit = {
+  val existing = p.ledger_api.state.acs.of_party(proposer)
+    .find(_.templateId.toString.contains("BlockProposal"))
+
+  if (existing.nonEmpty) {
+    println(s"  $name BlockProposal already exists — skipping.")
+  } else {
+    print(s"  $name: creating BlockProposal ... ")
+
+    val proposalValue = recV(
+      "chainId"      -> chainId,
+      "proposer"     -> partyV(proposer),
+      "transactions" -> listV(),
+      "withdrawals"  -> listV(),
+      "observers"    -> setV((partyV(proposer), unitV))
+    )
+
+    val createCmd = Command(Command.Command.Create(CreateCommand(
+      templateId = Some(proposalTemplateId),
+      createArguments = proposalValue.sum.record.map(Some(_)).getOrElse(None)
+    )))
+
+    p.ledger_api.commands.submit(
+      actAs = Seq(proposer),
+      commands = Seq(createCmd)
+    )
+    Thread.sleep(2000)
+    println("done")
+  }
+}
+
+createBlockProposal(participant1, validator1, "Validator1")
+createBlockProposal(participant2, validator2, "Validator2")
+
+// ── Phase 5: Write environment file for downstream services ─────────────────
+val envPath = Option(System.getProperty("env.path"))
+  .getOrElse(sys.props.getOrElse("user.home", "/home/canton") + "/canton/scripts/zenith-parties.env")
+println(s"\n[Phase 5] Writing environment file: $envPath")
+
+val envContent = Seq(
+  s"ZENITH_ZEO_PARTY=${zeo.toProtoPrimitive}",
+  s"ZENITH_VALIDATOR1_PARTY=${validator1.toProtoPrimitive}",
+  s"ZENITH_VALIDATOR2_PARTY=${validator2.toProtoPrimitive}",
+  s"ZENITH_PACKAGE_ID=${pkg.packageId}",
+  s"ZENITH_ZEORULES_CONTRACT_ID=${rulesContract.contractId}",
+  s"ZENITH_BLOCK_CONTRACT_ID=${blockContract.contractId}"
+).mkString("\n")
+
+val writer = new java.io.PrintWriter(new java.io.File(envPath))
+writer.println(envContent)
+writer.close()
+println("  done")
 
 // ── Summary ──────────────────────────────────────────────────────────────────
 println("\n" + "=" * 60)
 println("Contracts deployed.")
 println("=" * 60)
 println(s"\n  ZeoRules:  ${rulesContract.contractId}")
-println(s"  State:     ${stateContract.contractId}")
+println(s"  Block:     ${blockContract.contractId}")
 println(s"\n  Roles:")
 println(s"    ZEO:         $zeo")
 println(s"    Validator1:  $validator1")

@@ -32,27 +32,11 @@ canton {
 {% if participant.extension is defined %}
           extensions {
             {{ participant.extension.name }} {
-              name = "{{ participant.extension.display_name | default(participant.extension.name) }}"
-              host = "{{ participant.extension.host | default('127.0.0.1') }}"
+              address = "{{ participant.extension.host | default('127.0.0.1') }}"
               port = {{ participant.extension.port }}
-              use-tls = {{ participant.extension.use_tls | default(false) | lower }}
-              connect-timeout = {{ participant.extension.connect_timeout | default('2s') }}
-              request-timeout = {{ participant.extension.request_timeout | default('10s') }}
-              max-total-timeout = {{ participant.extension.max_total_timeout | default('30s') }}
-              max-retries = {{ participant.extension.max_retries | default(1) }}
-              declared-functions = [
-{% for func in participant.extension.declared_functions %}
-                { function-id = "{{ func.function_id }}", config-hash = "{{ func.config_hash | default('00000000') }}" }
-{% endfor %}
-              ]
             }
           }
 {% endif %}
-          extension-settings {
-            validate-extensions-on-startup = {{ participant.validate_extensions | default(false) | lower }}
-            fail-on-extension-validation-error = {{ participant.fail_on_extension_error | default(false) | lower }}
-            echo-mode = {{ participant.echo_mode | default(false) | lower }}
-          }
         }
       }
     }

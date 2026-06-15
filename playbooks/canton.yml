@@ -66,6 +66,8 @@
       when: zenith_headcasters | default([]) | length > 0
     - role: zenith_sequencer
       when: zenith_sequencers | default([]) | length > 0
+    - role: zenith_validator
+      when: zenith_validators | default([]) | length > 0
   post_tasks:
     - name: Start zenith.target (brings up all zenith services)
       become: true

@@ -8,12 +8,21 @@ PartOf=zenith.target
 Type=simple
 
 Environment=RUST_LOG=info,sequencer=debug
-ExecStart=%h/zenith/bin/sequencer \
-	--port {{ sq.port }}
+EnvironmentFile=%h/canton/scripts/zenith-parties.env
+ExecStart=%h/zenith/bin/sequencer node \
+	--chain {{ zenith_chain }} \
+	--datadir %h/zenith/data/sequencer-{{ sq.id }} \
+	--http --http.addr 0.0.0.0 --http.port {{ sq.http_port | default(sq.port) }} \
+	--sequencer.canton.addr http://127.0.0.1:{{ sq.canton_ledger_api_port }} \
+	--sequencer.canton.party-id ${ZENITH_VALIDATOR{{ sq.validator_id }}_PARTY} \
+	--sequencer.canton.chain-id ${ZENITH_ZEO_PARTY} \
+	--sequencer.canton.proposer-party-id ${ZENITH_VALIDATOR{{ sq.validator_id }}_PARTY} \
+	--sequencer.canton.user-id {{ sq.canton_user_id | default('participant_admin') }} \
+	--sequencer.canton.no-tls
 
 Restart=on-failure
 RestartSec=10
-TimeoutStartSec=30
+TimeoutStartSec=120
 TimeoutStopSec=30
 
 LimitNOFILE={{ canton_nofile_limit }}

@@ -1,0 +1,31 @@
+[Unit]
+Description="Zenith Validator {{ val.id }}"
+After=network.target zenith-deploy-contract.service
+Requires=zenith-deploy-contract.service
+PartOf=zenith.target
+
+[Service]
+Type=simple
+
+Environment=RUST_LOG=info,validator=debug
+EnvironmentFile=%h/canton/scripts/zenith-parties.env
+ExecStart=%h/zenith/bin/validator \
+	--validator-party ${ZENITH_VALIDATOR{{ val.validator_id }}_PARTY} \
+	--chain-id ${ZENITH_ZEO_PARTY} \
+	--user-id {{ val.canton_user_id | default('participant_admin') }} \
+	--ledger-api-addr http://127.0.0.1:{{ val.canton_ledger_api_port }} \
+	--no-tls \
+	--proposer \
+	--block-time {{ val.block_time | default(5) }}{% for obs in val.observers | default([]) %} \
+	--observers ${ZENITH_VALIDATOR{{ obs }}_PARTY}{% endfor %}
+
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=120
+TimeoutStopSec=30
+
+LimitNOFILE={{ canton_nofile_limit }}
+LimitNPROC={{ canton_nproc_limit }}
+
+[Install]
+WantedBy=zenith.target

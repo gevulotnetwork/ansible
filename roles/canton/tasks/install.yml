@@ -1,6 +1,21 @@
-- name: Copy Canton JAR
+- name: Download Canton toolchain from GitHub
+  ansible.builtin.command:
+    cmd: >-
+      gh release download toolchain-v{{ toolchain_version }}
+      --repo {{ zenith_evm_github_repo }}
+      --pattern {{ item.asset }}
+      --dir {{ zenith_download_dir }}
+      --clobber
+  delegate_to: localhost
+  become: false
+  run_once: true
+  loop: "{{ toolchain_release_assets }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Copy Canton JAR from download
   ansible.builtin.copy:
-    src: "{{ canton_dist_dir }}/canton.jar"
+    src: "{{ zenith_download_dir }}/canton.jar"
     dest: "{{ canton_lib_dir }}/canton.jar"
     owner: "{{ canton_user }}"
     group: "{{ canton_group }}"
@@ -15,9 +30,9 @@
     group: "{{ canton_group }}"
     mode: "0755"
 
-- name: Extract damlc
+- name: Extract damlc from download
   ansible.builtin.unarchive:
-    src: "{{ canton_dist_dir }}/damlc.tar.gz"
+    src: "{{ zenith_download_dir }}/damlc.tar.gz"
     dest: "{{ canton_bin_dir }}/damlc"
     owner: "{{ canton_user }}"
     group: "{{ canton_group }}"

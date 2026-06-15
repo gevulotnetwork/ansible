@@ -28,7 +28,7 @@
     src: "{{ zenith_download_dir }}/{{ item.asset }}"
     dest: "{{ zenith_download_dir }}"
     extra_opts: ["--strip-components=1"]
-    creates: "{{ zenith_download_dir }}/{{ item.name }}"
+    creates: "{{ zenith_download_dir }}/{{ item.binary | default(item.name) }}"
   delegate_to: localhost
   become: false
   run_once: true
@@ -38,7 +38,7 @@
 
 - name: Install Zenith EVM binaries
   ansible.builtin.copy:
-    src: "{{ zenith_download_dir }}/{{ item.name }}"
+    src: "{{ zenith_download_dir }}/{{ item.binary | default(item.name) }}"
     dest: "{{ zenith_bin_dir }}/{{ item.name }}"
     owner: "{{ canton_user }}"
     group: "{{ canton_group }}"

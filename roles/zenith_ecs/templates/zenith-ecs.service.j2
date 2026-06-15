@@ -11,7 +11,7 @@ Environment=RUST_LOG=debug
 ExecStart=%h/zenith/bin/zenith-ecs server \
     --config %h/zenith/etc/ecs{{ ecs.id }}.toml \
     --host 0.0.0.0 \
-    --port {{ ecs.port }} \
+    --port {{ ecs.internal_port | default(ecs.port | int + 10000) }} \
     --block-builder-addr http://127.0.0.1:{{ ecs.block_builder_port }}
 
 Restart=on-failure

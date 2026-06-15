@@ -8,8 +8,16 @@ PartOf=zenith.target
 Type=simple
 
 Environment=RUST_LOG=info,headcaster=debug
+EnvironmentFile=%h/canton/scripts/zenith-parties.env
 ExecStart=%h/zenith/bin/headcaster \
-	--port {{ hc.port }}
+	--rpc-url http://127.0.0.1:{{ hc.rpc_port }} \
+	--listen-addr /ip4/0.0.0.0/tcp/{{ hc.listen_port }} \
+	--canton-endpoint {{ hc.canton_endpoint }} \
+	--canton-party ${ZENITH_ZEO_PARTY} \
+	--block-package-id "#zenith-evm"{% if hc.engine_url is defined %} \
+	--engine-url {{ hc.engine_url }} \
+	--engine-jwt-file {{ hc.engine_jwt_file }}{% endif %}{% if hc.peers is defined %}{% for peer in hc.peers %} \
+	--peer {{ peer }}{% endfor %}{% endif %}
 
 Restart=on-failure
 RestartSec=10

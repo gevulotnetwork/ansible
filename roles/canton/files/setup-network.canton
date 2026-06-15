@@ -121,11 +121,21 @@ val synchronizerId = participant1.synchronizers.id_of(SynchronizerAlias.tryCreat
 
 def uploadDar(p: com.digitalasset.canton.console.ParticipantReference, name: String): Unit = {
   print(s"  Uploading to $name... ")
-  try {
-    p.dars.upload(darPath, synchronizerId = synchronizerId)
-    println("done")
-  } catch {
-    case _: Exception => println("already uploaded, skipping.")
+  var attempts = 0
+  var success = false
+  while (!success && attempts < 3) {
+    attempts += 1
+    try {
+      p.dars.upload(darPath, synchronizerId = synchronizerId)
+      success = true
+      println("done")
+    } catch {
+      case _: Throwable if attempts < 3 =>
+        print(s"retry($attempts)... ")
+        Thread.sleep(5000)
+      case _: Throwable =>
+        println("already uploaded or failed, skipping.")
+    }
   }
 }
 

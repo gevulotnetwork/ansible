@@ -1,3 +1,33 @@
+- name: Create block-builder data directories
+  ansible.builtin.file:
+    path: "{{ zenith_data_dir }}/relayer-{{ bb.id }}"
+    state: directory
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0755"
+  loop: "{{ zenith_block_builders }}"
+  loop_control:
+    loop_var: bb
+
+- name: Generate JWT secret for block-builder authrpc
+  ansible.builtin.shell:
+    cmd: "openssl rand -hex 32 > {{ zenith_data_dir }}/relayer-{{ bb.id }}/jwt.hex"
+    creates: "{{ zenith_data_dir }}/relayer-{{ bb.id }}/jwt.hex"
+  become: true
+  become_user: "{{ canton_user }}"
+  loop: "{{ zenith_block_builders }}"
+  loop_control:
+    loop_var: bb
+
+- name: Deploy block-builder genesis.json (Cancun, no Prague)
+  ansible.builtin.copy:
+    src: genesis.json
+    dest: "{{ zenith_etc_dir }}/genesis.json"
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0644"
+  register: genesis_changed
+
 - name: Deploy zenith-block-builder user services
   ansible.builtin.template:
     src: zenith-block-builder.service.j2
@@ -34,13 +64,22 @@
   loop_control:
     loop_var: bb
 
+- name: Wipe block-builder data if genesis changed
+  ansible.builtin.file:
+    path: "{{ zenith_data_dir }}/block-builder-{{ bb.id }}"
+    state: absent
+  when: genesis_changed.changed | default(false)
+  loop: "{{ zenith_block_builders }}"
+  loop_control:
+    loop_var: bb
+
 - name: Restart zenith-block-builder services if binaries changed
   become: true
   become_user: "{{ canton_user }}"
   ansible.builtin.command:
     cmd: "systemctl --user restart zenith-block-builder-{{ bb.id }}.service"
   changed_when: true
-  when: zenith_evm_binaries_changed | default(false)
+  when: zenith_evm_binaries_changed | default(false) or genesis_changed.changed | default(false)
   environment:
     XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
     DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"

@@ -1,0 +1,14 @@
+[Unit]
+Description="ECS v1->v0 proxy (participant {{ ecs.id }})"
+After=zenith-ecs-{{ ecs.id }}.service
+Requires=zenith-ecs-{{ ecs.id }}.service
+PartOf=zenith.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 %h/zenith/bin/ecs-proxy.py {{ ecs.port }} {{ ecs.internal_port | default(ecs.port | int + 10000) }}
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=zenith.target

@@ -9,10 +9,31 @@
   loop_control:
     loop_var: ecs
 
+- name: Deploy ECS v1->v0 proxy script
+  ansible.builtin.copy:
+    src: ecs-proxy.py
+    dest: "{{ zenith_bin_dir }}/ecs-proxy.py"
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0644"
+
 - name: Deploy zenith-ecs user services
   ansible.builtin.template:
     src: zenith-ecs.service.j2
     dest: "{{ canton_systemd_dir }}/zenith-ecs-{{ ecs.id }}.service"
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0644"
+  loop: "{{ zenith_ecs_servers }}"
+  loop_control:
+    loop_var: ecs
+  notify:
+    - Reload user systemd
+
+- name: Deploy zenith-ecs-proxy user services
+  ansible.builtin.template:
+    src: zenith-ecs-proxy.service.j2
+    dest: "{{ canton_systemd_dir }}/zenith-ecs-proxy-{{ ecs.id }}.service"
     owner: "{{ canton_user }}"
     group: "{{ canton_group }}"
     mode: "0644"
@@ -37,6 +58,19 @@
   become_user: "{{ canton_user }}"
   ansible.builtin.command:
     cmd: "systemctl --user enable zenith-ecs-{{ ecs.id }}.service"
+  changed_when: false
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"
+  loop: "{{ zenith_ecs_servers }}"
+  loop_control:
+    loop_var: ecs
+
+- name: Enable zenith-ecs-proxy services
+  become: true
+  become_user: "{{ canton_user }}"
+  ansible.builtin.command:
+    cmd: "systemctl --user enable zenith-ecs-proxy-{{ ecs.id }}.service"
   changed_when: false
   environment:
     XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"

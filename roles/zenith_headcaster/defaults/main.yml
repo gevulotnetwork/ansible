@@ -1,1 +1,12 @@
 zenith_headcasters: []
+# Each headcaster entry should have:
+#   id: numeric identifier
+#   rpc_port: block-builder HTTP RPC port
+#   listen_port: libp2p listen port
+#   canton_endpoint: gRPC endpoint of Canton participant
+#   canton_parties: list of party names to observe
+#   block_package_id: DAML package ID of zenith-evm
+# Optional:
+#   engine_url: Engine API URL for block import
+#   engine_jwt_file: JWT secret file for Engine API
+#   peers: list of static peer multiaddrs
