@@ -1,2 +1,2 @@
 zenith_sequencers: []
-zenith_chain: dev
+zenith_chain: "{{ zenith_etc_dir }}/genesis.json"

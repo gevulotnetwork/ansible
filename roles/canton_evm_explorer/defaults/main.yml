@@ -4,6 +4,6 @@ canton_evm_explorer_image: "ghcr.io/zenith-network/miax-test:fix-api-2"
 canton_evm_explorer_indexer_image: "ghcr.io/zenith-network/miax-test:indexer-1"
 canton_evm_explorer_db_url: "postgresql://canton:canton@127.0.0.1:5432/canton_evm_explorer"
 canton_evm_explorer_canton_http_api_url: "http://127.0.0.1:5013"
-canton_evm_explorer_evm_rpc_url: "http://127.0.0.1:8545"
+canton_evm_explorer_evm_rpc_url: "http://127.0.0.1:9200"
 canton_evm_explorer_ecs_url: "http://127.0.0.1:1606"
 canton_evm_explorer_port: 3000

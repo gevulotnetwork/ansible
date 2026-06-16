@@ -125,38 +125,67 @@ val zeo = existingZeo match {
     println(s"exists: $party")
     party
   case None =>
-    // Both participants propose the decentralized namespace
-    val namespaceTx = participant1.topology.decentralized_namespaces.propose_new(
-      owners = Set(participant1.namespace, participant2.namespace),
-      threshold = PositiveInt.one,
-      store = synchronizerId,
-      mustFullyAuthorize = false,
-    )
-    participant2.topology.decentralized_namespaces.propose_new(
-      owners = Set(participant1.namespace, participant2.namespace),
-      threshold = PositiveInt.one,
-      store = synchronizerId,
-      mustFullyAuthorize = false,
-    )
+    // Both participants propose the decentralized namespace (idempotent)
+    val owners = Set(participant1.namespace, participant2.namespace)
+    try {
+      participant1.topology.decentralized_namespaces.propose_new(
+        owners = owners,
+        threshold = PositiveInt.one,
+        store = synchronizerId,
+        mustFullyAuthorize = false,
+      )
+    } catch { case _: Throwable => println("(namespace proposal from participant1 already exists)") }
+    try {
+      participant2.topology.decentralized_namespaces.propose_new(
+        owners = owners,
+        threshold = PositiveInt.one,
+        store = synchronizerId,
+        mustFullyAuthorize = false,
+      )
+    } catch { case _: Throwable => println("(namespace proposal from participant2 already exists)") }
 
-    // Wait for the namespace to become active
-    val namespace = namespaceTx.mapping.namespace
+    // Find the decentralized namespace matching our owners
     utils.retry_until_true {
       participant1.topology.decentralized_namespaces
-        .list(synchronizerId, filterNamespace = namespace.filterString)
-        .nonEmpty
+        .list(synchronizerId).exists(r => owners.subsetOf(r.item.owners))
     }
+    val allNs = participant1.topology.decentralized_namespaces.list(synchronizerId)
+    println(s"(found ${allNs.size} decentralized namespace(s))")
+    val namespace = allNs.find(r => owners.subsetOf(r.item.owners))
+      .getOrElse(sys.error("No decentralized namespace found matching our owners"))
+      .item.namespace
 
     // Create zeo party under the decentralized namespace
     val partyId = PartyId(UniqueIdentifier.tryCreate("zeo", namespace))
 
-    // Map ZEO to participant1 (Submission permission — can submit commands as ZEO)
-    participant1.topology.party_to_participant_mappings.propose(
-      partyId,
-      Seq((participant1, ParticipantPermission.Submission)),
-      PositiveInt.one,
-      store = synchronizerId,
-    )
+    // Map ZEO to participant1 (Submission) — participant1 signs as namespace co-owner
+    try {
+      participant1.topology.party_to_participant_mappings.propose(
+        partyId,
+        Seq(
+          (participant1, ParticipantPermission.Submission),
+          (participant2, ParticipantPermission.Confirmation),
+        ),
+        PositiveInt.one,
+        store = synchronizerId,
+        mustFullyAuthorize = false,
+      )
+    } catch { case _: Throwable => println("(participant1 mapping proposal already exists)") }
+
+    // participant2 must also propose the same mapping to agree to host ZEO
+    try {
+      participant2.topology.party_to_participant_mappings.propose(
+        partyId,
+        Seq(
+          (participant1, ParticipantPermission.Submission),
+          (participant2, ParticipantPermission.Confirmation),
+        ),
+        PositiveInt.one,
+        store = synchronizerId,
+        mustFullyAuthorize = false,
+      )
+    } catch { case _: Throwable => println("(participant2 mapping proposal already exists)") }
+
     utils.retry_until_true {
       participant1.topology.party_to_participant_mappings
         .list(synchronizerId, filterParty = partyId.filterString)

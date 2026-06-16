@@ -13,6 +13,14 @@ ExecStart=%h/zenith/bin/sequencer node \
 	--chain {{ zenith_chain }} \
 	--datadir %h/zenith/data/sequencer-{{ sq.id }} \
 	--http --http.addr 0.0.0.0 --http.port {{ sq.http_port | default(sq.port) }} \
+{% if sq.authrpc_port is defined %}
+	--authrpc.jwtsecret %h/zenith/data/sequencer-{{ sq.id }}/jwt.hex \
+	--authrpc.port {{ sq.authrpc_port }} \
+{% endif %}
+{% if sq.p2p_port is defined %}
+	--port {{ sq.p2p_port }} \
+	--discovery.port {{ sq.p2p_port }} \
+{% endif %}
 	--sequencer.canton.addr http://127.0.0.1:{{ sq.canton_ledger_api_port }} \
 	--sequencer.canton.party-id ${ZENITH_VALIDATOR{{ sq.validator_id }}_PARTY} \
 	--sequencer.canton.chain-id ${ZENITH_ZEO_PARTY} \

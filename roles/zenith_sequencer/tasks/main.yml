@@ -1,3 +1,25 @@
+- name: Create sequencer data directories
+  ansible.builtin.file:
+    path: "{{ zenith_data_dir }}/sequencer-{{ sq.id }}"
+    state: directory
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0755"
+  loop: "{{ zenith_sequencers }}"
+  loop_control:
+    loop_var: sq
+
+- name: Generate JWT secret for sequencer authrpc
+  ansible.builtin.shell:
+    cmd: "openssl rand -hex 32 > {{ zenith_data_dir }}/sequencer-{{ sq.id }}/jwt.hex"
+    creates: "{{ zenith_data_dir }}/sequencer-{{ sq.id }}/jwt.hex"
+  become: true
+  become_user: "{{ canton_user }}"
+  loop: "{{ zenith_sequencers }}"
+  loop_control:
+    loop_var: sq
+  when: sq.authrpc_port is defined
+
 - name: Deploy zenith-sequencer user services
   ansible.builtin.template:
     src: zenith-sequencer.service.j2
