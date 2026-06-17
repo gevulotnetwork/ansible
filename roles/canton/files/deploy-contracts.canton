@@ -113,9 +113,7 @@ if (existingRules.nonEmpty) {
   val zeoRulesValue = recV(
     "chainId"      -> chainId,
     "proposers"    -> setV(
-      (partyV(validator1), unitV),
-      (partyV(validator2), unitV),
-      (partyV(validator3), unitV)
+      (partyV(validator1), unitV)
     ),
     "validators"   -> genMapV(
       (u64V(0), recV(
@@ -208,11 +206,7 @@ if (existingBlock.nonEmpty) {
       ),
       "withdrawalIndex" -> intV(0)
     ),
-    "observers" -> setV(
-      (partyV(validator1), unitV),
-      (partyV(validator2), unitV),
-      (partyV(validator3), unitV)
-    )
+    "observers" -> emptySetV
   )
 
   val blockTemplateId = Identifier(
@@ -289,8 +283,6 @@ def createBlockProposal(
 }
 
 createBlockProposal(participant1, validator1, "Validator1")
-createBlockProposal(participant2, validator2, "Validator2")
-createBlockProposal(participant3, validator3, "Validator3")
 
 // ── Phase 5: Write environment file for downstream services ─────────────────
 val envPath = Option(System.getProperty("env.path"))
