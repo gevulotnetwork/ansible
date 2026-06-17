@@ -1,0 +1,6 @@
+---
+- name: Configure UFW firewall
+  hosts: canton_nodes
+  become: true
+  roles:
+    - firewall

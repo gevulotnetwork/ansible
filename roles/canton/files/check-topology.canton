@@ -1,0 +1,43 @@
+val synchronizerId = participant1.synchronizers.id_of(SynchronizerAlias.tryCreate("da"))
+val zeo = participant1.parties.list().find(_.party.toProtoPrimitive.startsWith("zeo::")).get.party
+println("ZEO: " + zeo)
+
+// Check if participant1 can submit as zeo
+// Try via admin API party_to_participant check
+val p2pMappings = participant1.topology.party_to_participant_mappings.list(
+  synchronizerId, filterParty = zeo.filterString
+)
+println("P2P mappings for zeo: " + p2pMappings.size)
+p2pMappings.foreach { m =>
+  println("  Mapping: " + m.item.partyId)
+  println("  Threshold: " + m.item.threshold)
+  println("  Serial: " + m.context.serial)
+  println("  ValidFrom: " + m.context.validFrom)
+  println("  ValidUntil: " + m.context.validUntil)
+  m.item.participants.foreach { p =>
+    println("    Part: " + p.participantId + " perm=" + p.permission)
+  }
+}
+
+// Check hosting
+println("Hosted parties on p1:")
+participant1.parties.hosted().foreach(p => println("  " + p.party + " participants=" + p.participants.size))
+
+// Try the actual submit
+import com.daml.ledger.api.v2.value._
+import com.daml.ledger.api.v2.commands._
+val pkg = participant1.packages.find_by_module("Zenith.Evm.Rules").headOption
+  .getOrElse(sys.error("Package not found"))
+println("Package: " + pkg.packageId)
+
+// Try submit with explicit synchronizer
+try {
+  participant1.ledger_api.commands.submit(
+    actAs = Seq(zeo),
+    commands = Seq(),
+    synchronizerId = Some(synchronizerId),
+  )
+  println("SUBMIT: success (empty)")
+} catch {
+  case e: Throwable => println("SUBMIT_ERROR: " + e.getMessage.take(200))
+}

@@ -1,11 +1,49 @@
-- name: Allow SSH
-  ansible.posix.firewalld:
-    service: "{{ item }}"
+---
+- name: Install ufw
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+    update_cache: true
+
+- name: Set default deny incoming
+  community.general.ufw:
+    default: deny
+    direction: incoming
+  notify: reload ufw
+
+- name: Set default allow outgoing
+  community.general.ufw:
+    default: allow
+    direction: outgoing
+  notify: reload ufw
+
+- name: Allow configured ports
+  community.general.ufw:
+    rule: allow
+    port: "{{ item.port | string }}"
+    proto: "{{ item.proto }}"
+    comment: "{{ item.comment | default(omit) }}"
+  loop: "{{ firewall_allowed_ports }}"
+  notify: reload ufw
+
+- name: Enable ufw
+  community.general.ufw:
     state: enabled
-    permanent: true
-    immediate: true
-    offline: true
-  loop:
-    - ssh
-    - http
-    - https
+
+# ── GCP VPC firewall rules (run from controller, not the remote host) ────────
+- name: Create GCP firewall rules
+  ansible.builtin.command:
+    cmd: >
+      gcloud compute firewall-rules create {{ item.name }}
+      --project {{ gcp_project }}
+      --allow {{ item.proto }}:{{ item.port }}
+      --source-ranges {{ item.source_ranges }}
+      --description "{{ item.description }}"
+      --quiet
+  loop: "{{ gcp_firewall_rules }}"
+  delegate_to: localhost
+  become: false
+  register: gcp_fw_result
+  changed_when: gcp_fw_result.rc == 0
+  failed_when: gcp_fw_result.rc != 0 and 'already exists' not in gcp_fw_result.stderr
+  run_once: true

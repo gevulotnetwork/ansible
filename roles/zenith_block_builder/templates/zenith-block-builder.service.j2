@@ -1,10 +1,8 @@
 [Unit]
 Description="Zenith Block Builder on participant {{ bb.id }}"
-{% if bb.id == 1 %}
 After=network.target
-{% else %}
-After=network.target zenith-deploy-contract.service
-Requires=zenith-deploy-contract.service
+{% if bb.id != 1 %}
+Wants=zenith-deploy-contract.service
 {% endif %}
 PartOf=zenith.target
 

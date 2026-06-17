@@ -8,8 +8,8 @@
 #
 # Service startup order (managed by systemd dependencies):
 #   postgres → postgres-init → sequencer-mediator → participants
-#   → network-setup → deploy-contract → block-builders → ecs
-#   → headcaster → sequencer → evm-explorer → cloudflared
+#   → network-setup → block-builders → deploy-contract → ecs
+#   → headcaster → sequencer → validator → evm-explorer → cloudflared
 #
 # Groups:
 #   canton_sequencers   - hosts running the sequencer-mediator
@@ -21,6 +21,7 @@
   hosts: canton_nodes
   become: true
   roles:
+    - firewall
     - canton
 
 # PostgreSQL via Podman
@@ -45,21 +46,21 @@
     - role: canton_participant
       when: canton_participants | default([]) | length > 0
 
-# Network setup and contract deployment
-- name: Canton network setup and contract deployment
+# Network setup (topology, parties, DAR upload)
+- name: Canton network setup
   hosts: canton_nodes
   become: true
   roles:
     - canton_network_setup
-    - zenith_deploy_contract
 
-# Zenith services
+# Zenith services (block-builder must start before deploy-contract)
 - name: Zenith services
   hosts: canton_participants
   become: true
   roles:
     - role: zenith_block_builder
       when: zenith_block_builders | default([]) | length > 0
+    - zenith_deploy_contract
     - role: zenith_ecs
       when: zenith_ecs_servers | default([]) | length > 0
     - role: zenith_headcaster

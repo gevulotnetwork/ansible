@@ -1,0 +1,13 @@
+---
+firewall_allowed_ports:
+  - { port: 22, proto: tcp, comment: "SSH" }
+  - { port: 9200, proto: tcp, comment: "Zenith Sequencer RPC" }
+
+# GCP VPC firewall rules (applied via gcloud from the controller)
+gcp_project: "{{ lookup('env', 'GCP_PROJECT') | default('zenith-development-489709', true) }}"
+gcp_firewall_rules:
+  - name: allow-sequencer-rpc
+    port: 9200
+    proto: tcp
+    source_ranges: "0.0.0.0/0"
+    description: "Zenith Sequencer RPC (public)"

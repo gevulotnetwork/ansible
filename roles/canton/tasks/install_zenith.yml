@@ -24,10 +24,8 @@
     label: "{{ item.name }}"
 
 - name: Extract Zenith EVM binaries from tarballs
-  ansible.builtin.unarchive:
-    src: "{{ zenith_download_dir }}/{{ item.asset }}"
-    dest: "{{ zenith_download_dir }}"
-    extra_opts: ["--strip-components=1"]
+  ansible.builtin.command:
+    cmd: "tar xzf {{ zenith_download_dir }}/{{ item.asset }} --strip-components=1 -C {{ zenith_download_dir }}"
     creates: "{{ zenith_download_dir }}/{{ item.binary | default(item.name) }}"
   delegate_to: localhost
   become: false

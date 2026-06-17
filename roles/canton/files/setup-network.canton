@@ -4,10 +4,10 @@
 // and uploads the DAR. Idempotent: safe to re-run.
 //
 // Parties:
-//   zeo: decentralized namespace (co-owned by participant1 + participant2)
+//   zeo: decentralized namespace (owned by participant1, hosted on all 3)
 //   participant1: Validator1
 //   participant2: Validator2
-//   participant3: (observer)
+//   participant3: Validator3
 
 println("=" * 60)
 println("Zenith EVM — Network Setup")
@@ -113,8 +113,10 @@ def findOrCreate(p: com.digitalasset.canton.console.ParticipantReference, name: 
 
 val validator1 = findOrCreate(participant1, "Validator1")
 val validator2 = findOrCreate(participant2, "Validator2")
+val validator3 = findOrCreate(participant3, "Validator3")
 
-// ZEO uses a decentralized namespace co-owned by both participants
+// ZEO uses a single-owner decentralized namespace (participant1 owns governance).
+// All 3 participants host the party with Submission permission.
 print("  zeo ... ")
 val existingZeo = participant1.parties.list()
   .find(_.party.toProtoPrimitive.startsWith("zeo::"))
@@ -125,74 +127,66 @@ val zeo = existingZeo match {
     println(s"exists: $party")
     party
   case None =>
-    // Both participants propose the decentralized namespace (idempotent)
-    val owners = Set(participant1.namespace, participant2.namespace)
-    try {
-      participant1.topology.decentralized_namespaces.propose_new(
-        owners = owners,
-        threshold = PositiveInt.one,
-        store = synchronizerId,
-        mustFullyAuthorize = false,
-      )
-    } catch { case _: Throwable => println("(namespace proposal from participant1 already exists)") }
-    try {
-      participant2.topology.decentralized_namespaces.propose_new(
-        owners = owners,
-        threshold = PositiveInt.one,
-        store = synchronizerId,
-        mustFullyAuthorize = false,
-      )
-    } catch { case _: Throwable => println("(namespace proposal from participant2 already exists)") }
-
-    // Find the decentralized namespace matching our owners
+    // Step 1: Create decentralized namespace (single owner = participant1)
+    val namespaceTx = participant1.topology.decentralized_namespaces.propose_new(
+      owners = Set(participant1.namespace),
+      threshold = PositiveInt.one,
+      store = synchronizerId,
+      mustFullyAuthorize = true,
+    )
     utils.retry_until_true {
       participant1.topology.decentralized_namespaces
-        .list(synchronizerId).exists(r => owners.subsetOf(r.item.owners))
-    }
-    val allNs = participant1.topology.decentralized_namespaces.list(synchronizerId)
-    println(s"(found ${allNs.size} decentralized namespace(s))")
-    val namespace = allNs.find(r => owners.subsetOf(r.item.owners))
-      .getOrElse(sys.error("No decentralized namespace found matching our owners"))
-      .item.namespace
-
-    // Create zeo party under the decentralized namespace
-    val partyId = PartyId(UniqueIdentifier.tryCreate("zeo", namespace))
-
-    // Map ZEO to participant1 (Submission) — participant1 signs as namespace co-owner
-    try {
-      participant1.topology.party_to_participant_mappings.propose(
-        partyId,
-        Seq(
-          (participant1, ParticipantPermission.Submission),
-          (participant2, ParticipantPermission.Confirmation),
-        ),
-        PositiveInt.one,
-        store = synchronizerId,
-        mustFullyAuthorize = false,
-      )
-    } catch { case _: Throwable => println("(participant1 mapping proposal already exists)") }
-
-    // participant2 must also propose the same mapping to agree to host ZEO
-    try {
-      participant2.topology.party_to_participant_mappings.propose(
-        partyId,
-        Seq(
-          (participant1, ParticipantPermission.Submission),
-          (participant2, ParticipantPermission.Confirmation),
-        ),
-        PositiveInt.one,
-        store = synchronizerId,
-        mustFullyAuthorize = false,
-      )
-    } catch { case _: Throwable => println("(participant2 mapping proposal already exists)") }
-
-    utils.retry_until_true {
-      participant1.topology.party_to_participant_mappings
-        .list(synchronizerId, filterParty = partyId.filterString)
+        .list(synchronizerId, filterNamespace = namespaceTx.mapping.namespace.filterString)
         .nonEmpty
     }
+    val namespace = namespaceTx.mapping.namespace
+    println(s"namespace created: $namespace")
 
-    println(s"created (decentralized, co-owned): $partyId")
+    // Step 2: Map zeo to all 3 participants with Submission
+    val partyId = PartyId(UniqueIdentifier.tryCreate("zeo", namespace))
+    print("  mapping to all participants... ")
+
+    // participant1 owns the namespace so it proposes the full mapping.
+    // participant2/3 must also propose to provide hosting consent.
+    val partyMapping: Seq[(com.digitalasset.canton.topology.ParticipantId, ParticipantPermission)] = Seq(
+      (participant1.id, ParticipantPermission.Submission),
+      (participant2.id, ParticipantPermission.Submission),
+      (participant3.id, ParticipantPermission.Submission),
+    )
+
+    try {
+      participant1.topology.party_to_participant_mappings.propose(
+        partyId, partyMapping, PositiveInt.one,
+        store = synchronizerId, mustFullyAuthorize = false,
+      )
+    } catch { case _: Throwable => () }
+    try {
+      participant2.topology.party_to_participant_mappings.propose(
+        partyId, partyMapping, PositiveInt.one,
+        store = synchronizerId, mustFullyAuthorize = false,
+      )
+    } catch { case _: Throwable => () }
+    try {
+      participant3.topology.party_to_participant_mappings.propose(
+        partyId, partyMapping, PositiveInt.one,
+        store = synchronizerId, mustFullyAuthorize = false,
+      )
+    } catch { case _: Throwable => () }
+
+    // Wait until all 3 participants appear in the fully-authorized mapping
+    utils.retry_until_true(timeout = 2.minutes) {
+      val mappings = participant1.topology.party_to_participant_mappings
+        .list(synchronizerId, filterParty = partyId.filterString)
+      mappings.exists(_.item.participants.size >= 3)
+    }
+    println("done")
+
+    // Give Ledger API time to catch up with topology changes
+    print("  Waiting for Ledger API topology sync... ")
+    Thread.sleep(10000)
+    println("done")
+
+    println(s"created: $partyId")
     partyId
 }
 
@@ -236,3 +230,5 @@ println(s"    zeo (decentralized): $zeo")
 println(s"    Validator1:          $validator1")
 println("  participant2:")
 println(s"    Validator2:          $validator2")
+println("  participant3:")
+println(s"    Validator3:          $validator3")
