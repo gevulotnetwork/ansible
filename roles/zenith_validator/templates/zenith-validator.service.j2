@@ -15,7 +15,9 @@ ExecStart=%h/zenith/bin/validator \
 	--user-id {{ val.canton_user_id | default('participant_admin') }} \
 	--ledger-api-addr http://127.0.0.1:{{ val.canton_ledger_api_port }} \
 	--no-tls \
+{% if val.proposer | default(false) %}
 	--proposer \
+{% endif %}
 	--block-time {{ val.block_time | default(5) }}{% for obs in val.observers | default([]) %} \
 	--observers ${ZENITH_VALIDATOR{{ obs }}_PARTY}{% endfor %}
 
