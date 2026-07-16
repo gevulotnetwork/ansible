@@ -48,4 +48,14 @@ canton {
       admin-api { address = "0.0.0.0", port = {{ canton_mediator_admin_api_port }} }
     }
   }
+
+  monitoring {
+    metrics {
+      reporters = [{
+        type = prometheus
+        address = "0.0.0.0"
+        port = {{ canton_sequencer_mediator_metrics_port }}
+      }]
+    }
+  }
 }

@@ -29,7 +29,7 @@ block_builder_version: "0.1.2"
 zenith_ecs_version: "0.1.2"
 headcaster_version: "0.1.2"
 sequencer_version: "0.1.3"
-validator_version: "0.1.3"
+validator_version: "0.1.5"
 
 # Canton toolchain (canton.jar, damlc) from GitHub releases
 toolchain_version: "0.2.2"

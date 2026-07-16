@@ -1,7 +1,0 @@
-- name: "Include tasks - {{ task_item }}"
-  ansible.builtin.include_tasks: "{{ task_item }}.yml"
-  loop:
-    - packages
-    - monitoring
-  loop_control:
-    loop_var: task_item

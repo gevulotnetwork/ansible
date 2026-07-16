@@ -46,7 +46,6 @@
       - podman
       - prometheus-node-exporter
       - prometheus-node-exporter-collectors
-      - alloy
       - firewalld
       - python3-firewall
       - python3-virtualenv
