@@ -1,0 +1,16 @@
+---
+# Deploy Vector log/metrics pipeline to Canton nodes.
+#
+# Run on all nodes:
+#   ansible-playbook playbooks/vector.yml
+#
+# Run on specific host(s) only:
+#   ansible-playbook playbooks/vector.yml --limit canton-test-01
+#
+# Run on a host group:
+#   ansible-playbook playbooks/vector.yml --limit canton_sequencers
+- name: Deploy Vector
+  hosts: canton_nodes
+  become: true
+  roles:
+    - vector

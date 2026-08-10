@@ -1,0 +1,69 @@
+---
+# Manage the Canton EVM Explorer stack (indexer + web UI).
+#
+# Deploy / update:
+#   ansible-playbook playbooks/explorer.yml
+#
+# Stop the explorer:
+#   ansible-playbook playbooks/explorer.yml -e explorer_state=stopped
+#
+# Start it back up:
+#   ansible-playbook playbooks/explorer.yml -e explorer_state=started
+#
+# Redeploy with new images:
+#   ansible-playbook playbooks/explorer.yml -e explorer_redeploy=true
+#
+# Limit to specific host:
+#   ansible-playbook playbooks/explorer.yml --limit canton-test-01
+
+- name: Manage Canton EVM Explorer
+  hosts: canton_nodes
+  become: true
+  vars:
+    explorer_state: started
+    explorer_redeploy: false
+  roles:
+    - role: canton_evm_explorer
+      when: explorer_state != "stopped"
+  tasks:
+    - name: Get canton user UID
+      ansible.builtin.command:
+        cmd: "id -u {{ canton_user }}"
+      register: canton_uid
+      changed_when: false
+
+    # ── Stop ────────────────────────────────────────────────
+    - name: Stop explorer stack
+      become_user: "{{ canton_user }}"
+      ansible.builtin.command:
+        cmd: "systemctl --user stop canton-evm-explorer.target"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+        DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"
+      changed_when: true
+      when: explorer_state == "stopped"
+
+    # ── Pull latest images (on redeploy) ────────────────────
+    - name: Pull latest explorer images
+      become_user: "{{ canton_user }}"
+      ansible.builtin.command:
+        cmd: "podman pull {{ item }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+        DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"
+      loop:
+        - "{{ canton_evm_explorer_indexer_image }}"
+        - "{{ canton_evm_explorer_image }}"
+      changed_when: true
+      when: explorer_redeploy | bool
+
+    # ── Restart on redeploy ─────────────────────────────────
+    - name: Restart explorer services after redeploy
+      become_user: "{{ canton_user }}"
+      ansible.builtin.command:
+        cmd: "systemctl --user restart canton-evm-explorer-indexer.service canton-evm-explorer.service"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+        DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"
+      changed_when: true
+      when: explorer_redeploy | bool

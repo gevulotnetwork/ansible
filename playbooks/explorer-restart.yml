@@ -1,0 +1,28 @@
+---
+- name: Restart Canton EVM Explorer
+  hosts: canton_nodes
+  become: true
+  pre_tasks:
+    - name: Look up canton user UID
+      ansible.builtin.command:
+        cmd: "id -u {{ canton_user }}"
+      register: canton_uid
+      changed_when: false
+  tasks:
+    - name: Restart canton-evm-explorer-indexer service
+      become_user: "{{ canton_user }}"
+      ansible.builtin.command:
+        cmd: systemctl --user restart canton-evm-explorer-indexer.service
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+        DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"
+      changed_when: true
+
+    - name: Restart canton-evm-explorer service
+      become_user: "{{ canton_user }}"
+      ansible.builtin.command:
+        cmd: systemctl --user restart canton-evm-explorer.service
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+        DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"
+      changed_when: true

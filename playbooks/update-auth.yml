@@ -1,0 +1,18 @@
+---
+# Update container registry auth on Canton nodes.
+#
+# Usage:
+#   ansible-playbook playbooks/update-auth.yml
+- name: Update container registry auth
+  hosts: canton_nodes
+  become: true
+
+  tasks:
+    - name: Deploy container registry auth
+      ansible.builtin.copy:
+        content: "{{ podman_auth_json | to_nice_json }}"
+        dest: "{{ canton_user_home }}/.config/containers/auth.json"
+        owner: "{{ canton_user }}"
+        group: "{{ canton_group }}"
+        mode: "0600"
+      when: podman_auth_json is defined

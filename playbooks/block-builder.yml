@@ -1,0 +1,13 @@
+---
+- name: Zenith block-builders
+  hosts: canton_participants
+  become: true
+  pre_tasks:
+    - name: Look up canton user UID
+      ansible.builtin.command:
+        cmd: "id -u {{ canton_user }}"
+      register: canton_uid
+      changed_when: false
+  roles:
+    - role: zenith_block_builder
+      when: zenith_block_builders | default([]) | length > 0

@@ -1,0 +1,14 @@
+---
+# Manage Cloudflare Tunnel for Canton EVM Explorer.
+#
+# Deploy / update:
+#   ansible-playbook playbooks/cloudflared.yml
+#
+# Limit to specific host:
+#   ansible-playbook playbooks/cloudflared.yml --limit canton-test-01
+
+- name: Deploy Cloudflare Tunnel
+  hosts: canton_nodes
+  become: true
+  roles:
+    - cloudflared

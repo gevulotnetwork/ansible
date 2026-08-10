@@ -1,0 +1,13 @@
+---
+# Redeploy the Zenith sequencer and its dependencies.
+#
+# Usage:
+#   ansible-playbook playbooks/sequencer.yml
+#   ansible-playbook playbooks/sequencer.yml --limit canton-devnet-01
+
+- name: Zenith sequencer
+  hosts: canton_participants
+  become: true
+  roles:
+    - role: zenith_sequencer
+      when: zenith_sequencers | default([]) | length > 0

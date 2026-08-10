@@ -1,0 +1,19 @@
+---
+- name: Restart Zenith Validator 1
+  hosts: canton_nodes
+  become: true
+  pre_tasks:
+    - name: Look up canton user UID
+      ansible.builtin.command:
+        cmd: "id -u {{ canton_user }}"
+      register: canton_uid
+      changed_when: false
+  tasks:
+    - name: Restart zenith-validator-1 service
+      become_user: "{{ canton_user }}"
+      ansible.builtin.command:
+        cmd: systemctl --user restart zenith-validator-1.service
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+        DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"
+      changed_when: true

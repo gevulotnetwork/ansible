@@ -1,0 +1,23 @@
+---
+- name: Restart Zenith block-builders
+  hosts: canton_participants
+  become: true
+  pre_tasks:
+    - name: Look up canton user UID
+      ansible.builtin.command:
+        cmd: "id -u {{ canton_user }}"
+      register: canton_uid
+      changed_when: false
+  tasks:
+    - name: Restart zenith-block-builder services
+      become_user: "{{ canton_user }}"
+      ansible.builtin.command:
+        cmd: "systemctl --user restart zenith-block-builder-{{ bb.id }}.service"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+        DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"
+      changed_when: true
+      when: bb_id is not defined or bb.id == (bb_id | int)
+      loop: "{{ zenith_block_builders }}"
+      loop_control:
+        loop_var: bb
