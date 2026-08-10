@@ -27,7 +27,7 @@ zenith_evm_arch: x86_64-unknown-linux-gnu
 
 block_builder_version: "0.1.2"
 zenith_ecs_version: "0.1.2"
-headcaster_version: "0.1.2"
+headcaster_version: "0.2.0"
 sequencer_version: "0.1.3"
 validator_version: "0.1.5"
 

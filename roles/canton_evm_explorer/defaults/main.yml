@@ -1,9 +1,25 @@
-# To modify later
-canton_evm_explorer_image: "ghcr.io/zenith-network/miax-test:fix-api-2"
-# To modify later
-canton_evm_explorer_indexer_image: "ghcr.io/zenith-network/miax-test:indexer-1"
-canton_evm_explorer_db_url: "postgresql://canton:canton@127.0.0.1:5432/canton_evm_explorer"
+canton_evm_explorer_image: "ghcr.io/zenith-network/canton-evm-explorer:latest"
+canton_evm_explorer_indexer_image: "ghcr.io/zenith-network/canton-evm-explorer:indexer"
+canton_evm_explorer_db_name: "canton_evm_final"
+canton_evm_explorer_db_url: "postgresql://{{ canton_postgres_user }}:{{ canton_postgres_password }}@127.0.0.1:{{ canton_postgres_port }}/{{ canton_evm_explorer_db_name }}"
 canton_evm_explorer_canton_http_api_url: "http://127.0.0.1:5013"
 canton_evm_explorer_evm_rpc_url: "http://127.0.0.1:9200"
-canton_evm_explorer_ecs_url: "http://127.0.0.1:1606"
+canton_evm_explorer_chain_id: 936485
 canton_evm_explorer_port: 3000
+
+# Network
+canton_evm_explorer_default_network: "final-testnet"
+
+# Indexer performance tuning
+canton_evm_explorer_canton_page_size: 500
+canton_evm_explorer_canton_poll_ms: 500
+canton_evm_explorer_correlator_poll_ms: 3000
+canton_evm_explorer_evm_batch_size: 500
+canton_evm_explorer_evm_poll_ms: 200
+
+# Faucet (disabled when private key is empty)
+canton_evm_explorer_faucet_private_key: ""
+canton_evm_explorer_faucet_wctn_address: ""
+canton_evm_explorer_faucet_zth_amount: 100
+canton_evm_explorer_faucet_wctn_amount: 100
+canton_evm_explorer_faucet_network_id: "final-testnet"

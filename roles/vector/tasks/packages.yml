@@ -1,22 +1,43 @@
-- name: Add Vector apt repo (Datadog)
-  ansible.builtin.deb822_repository:
-    name: vector
-    types: deb
-    uris: https://apt.vector.dev
-    suites: stable
-    components: universe
-    architectures: amd64
-    signed_by: https://keys.datadoghq.com/DATADOG_APT_KEY_CURRENT.public
+- name: Check if Vector is already installed
+  ansible.builtin.command:
+    cmd: vector --version
+  register: _vector_installed
+  changed_when: false
+  failed_when: false
 
-- name: Update cache
-  ansible.builtin.apt:
-    update_cache: true
+- name: Install Vector from GitHub release
+  when: _vector_installed.rc != 0 or ('vector ' + vector_version) not in (_vector_installed.stdout | default(''))
+  block:
+    - name: Download Vector .deb from GitHub
+      ansible.builtin.get_url:
+        url: "https://github.com/vectordotdev/vector/releases/download/v{{ vector_version }}/vector_{{ vector_version }}-1_amd64.deb"
+        dest: "/tmp/vector_{{ vector_version }}_amd64.deb"
+        mode: "0644"
 
-- name: Install Vector
+    - name: Install Vector .deb
+      ansible.builtin.apt:
+        deb: "/tmp/vector_{{ vector_version }}_amd64.deb"
+
+    - name: Clean up .deb file
+      ansible.builtin.file:
+        path: "/tmp/vector_{{ vector_version }}_amd64.deb"
+        state: absent
+
+- name: Install prometheus-node-exporter
   ansible.builtin.package:
-    name:
-      - vector
+    name: prometheus-node-exporter
     state: present
+
+- name: Enable and start node-exporter
+  ansible.builtin.systemd_service:
+    name: prometheus-node-exporter
+    enabled: true
+    state: started
+
+- name: Remove stale apt repo (if present)
+  ansible.builtin.file:
+    path: /etc/apt/sources.list.d/vector.sources
+    state: absent
 
 - name: Deploy Vector systemd service
   ansible.builtin.template:
@@ -26,9 +47,3 @@
   notify:
     - Reload systemd
     - Restart vector
-
-- name: Enable and start Vector service
-  ansible.builtin.systemd_service:
-    name: vector
-    enabled: true
-    state: started

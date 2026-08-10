@@ -15,16 +15,21 @@ ExecStartPre=-/usr/bin/podman rm canton-evm-explorer-indexer
 
 ExecStartPre=/usr/bin/podman run --rm --network host \
     -e DATABASE_URL={{ canton_evm_explorer_db_url }} \
-    --entrypoint sh {{ canton_evm_explorer_indexer_image }} \
-    -c 'npm run db:push'
+    {{ canton_evm_explorer_indexer_image }} \
+    npx drizzle-kit push --force
 
 ExecStart=/usr/bin/podman run \
     --name canton-evm-explorer-indexer \
     --network host \
     -e DATABASE_URL={{ canton_evm_explorer_db_url }} \
-    -e CANTON_HTTP_API_URL={{ canton_evm_explorer_canton_http_api_url }} \
     -e EVM_RPC_URL={{ canton_evm_explorer_evm_rpc_url }} \
-    -e EXTERNAL_CALL_SERVER_URL={{ canton_evm_explorer_ecs_url }} \
+    -e CANTON_HTTP_API_URL={{ canton_evm_explorer_canton_http_api_url }} \
+    -e CHAIN_ID={{ canton_evm_explorer_chain_id }} \
+    -e CANTON_PAGE_SIZE={{ canton_evm_explorer_canton_page_size }} \
+    -e CANTON_POLL_MS={{ canton_evm_explorer_canton_poll_ms }} \
+    -e EVM_POLL_MS={{ canton_evm_explorer_evm_poll_ms }} \
+    -e EVM_BATCH_SIZE={{ canton_evm_explorer_evm_batch_size }} \
+    -e CORRELATOR_POLL_MS={{ canton_evm_explorer_correlator_poll_ms }} \
     --rm \
     {{ canton_evm_explorer_indexer_image }}
 

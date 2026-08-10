@@ -4,9 +4,14 @@ zenith_headcasters: []
 #   rpc_port: block-builder HTTP RPC port
 #   listen_port: libp2p listen port
 #   canton_endpoint: gRPC endpoint of Canton participant
-#   canton_parties: list of party names to observe
-#   block_package_id: DAML package ID of zenith-evm
 # Optional:
+#   canton_parties: list of canton party env vars (default: ['${ZENITH_ZEO_PARTY}'])
+#   canton_token_file: path to JWT bearer token for Canton Ledger API
+#   state_quorum: P2P quorum degree for state sync (default: 1)
 #   engine_url: Engine API URL for block import
 #   engine_jwt_file: JWT secret file for Engine API
 #   peers: list of static peer multiaddrs
+#
+# Auto-configured (derived from id):
+#   offset file:  {{ zenith_data_dir }}/headcaster-{id}/offset
+#   keypair file: {{ zenith_data_dir }}/headcaster-{id}/keypair

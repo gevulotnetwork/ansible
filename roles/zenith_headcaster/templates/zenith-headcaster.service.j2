@@ -13,8 +13,14 @@ ExecStart=%h/zenith/bin/headcaster \
 	--rpc-url http://127.0.0.1:{{ hc.rpc_port }} \
 	--listen-addr /ip4/0.0.0.0/tcp/{{ hc.listen_port }} \
 	--canton-endpoint {{ hc.canton_endpoint }} \
-	--canton-party ${ZENITH_ZEO_PARTY} \
-	--block-package-id "#zenith-evm"{% if hc.engine_url is defined %} \
+{% for party in hc.canton_parties | default(['${ZENITH_ZEO_PARTY}']) %}
+	--canton-party {{ party }} \
+{% endfor %}
+	--block-package-id "#zenith-evm" \
+	--canton-offset-file %h/zenith/data/headcaster-{{ hc.id }}/offset \
+	--keypair-file %h/zenith/data/headcaster-{{ hc.id }}/keypair{% if hc.state_quorum is defined %} \
+	--state-quorum {{ hc.state_quorum }}{% endif %}{% if hc.canton_token_file is defined %} \
+	--canton-token-file {{ hc.canton_token_file }}{% endif %}{% if hc.engine_url is defined %} \
 	--engine-url {{ hc.engine_url }} \
 	--engine-jwt-file {{ hc.engine_jwt_file }}{% endif %}{% if hc.peers is defined %}{% for peer in hc.peers %} \
 	--peer {{ peer }}{% endfor %}{% endif %}

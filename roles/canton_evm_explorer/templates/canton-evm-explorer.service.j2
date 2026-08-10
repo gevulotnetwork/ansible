@@ -16,10 +16,17 @@ ExecStart=/usr/bin/podman run \
     --name canton-evm-explorer \
     --network host \
     -e DATABASE_URL={{ canton_evm_explorer_db_url }} \
-    -e CANTON_HTTP_API_URL={{ canton_evm_explorer_canton_http_api_url }} \
     -e EVM_RPC_URL={{ canton_evm_explorer_evm_rpc_url }} \
-    -e EXTERNAL_CALL_SERVER_URL={{ canton_evm_explorer_ecs_url }} \
-    -e PORT={{ canton_evm_explorer_port }} \
+    -e CANTON_HTTP_API_URL={{ canton_evm_explorer_canton_http_api_url }} \
+    -e CHAIN_ID={{ canton_evm_explorer_chain_id }} \
+    -e DEFAULT_NETWORK={{ canton_evm_explorer_default_network }} \
+{% if canton_evm_explorer_faucet_private_key %}
+    -e FAUCET_PRIVATE_KEY={{ canton_evm_explorer_faucet_private_key }} \
+    -e FAUCET_WCTN_ADDRESS={{ canton_evm_explorer_faucet_wctn_address }} \
+    -e FAUCET_ZTH_AMOUNT={{ canton_evm_explorer_faucet_zth_amount }} \
+    -e FAUCET_WCTN_AMOUNT={{ canton_evm_explorer_faucet_wctn_amount }} \
+    -e FAUCET_NETWORK_ID={{ canton_evm_explorer_faucet_network_id }} \
+{% endif %}
     --rm \
     {{ canton_evm_explorer_image }}
 

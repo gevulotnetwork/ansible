@@ -13,6 +13,7 @@ ExecStart=%h/zenith/bin/sequencer node \
 	--chain {{ zenith_chain }} \
 	--datadir %h/zenith/data/sequencer-{{ sq.id }} \
 	--http --http.addr 0.0.0.0 --http.port {{ sq.http_port | default(sq.port) }} \
+	--http.corsdomain "*" \
 {% if sq.authrpc_port is defined %}
 	--authrpc.jwtsecret %h/zenith/data/sequencer-{{ sq.id }}/jwt.hex \
 	--authrpc.port {{ sq.authrpc_port }} \
@@ -21,11 +22,17 @@ ExecStart=%h/zenith/bin/sequencer node \
 	--port {{ sq.p2p_port }} \
 	--discovery.port {{ sq.p2p_port }} \
 {% endif %}
+{% if sq.trusted_peers is defined %}
+	--trusted-peers {{ sq.trusted_peers | join(',') }} \
+{% endif %}
 	--sequencer.canton.addr http://127.0.0.1:{{ sq.canton_ledger_api_port }} \
 	--sequencer.canton.party-id ${ZENITH_VALIDATOR{{ sq.validator_id }}_PARTY} \
 	--sequencer.canton.chain-id ${ZENITH_ZEO_PARTY} \
 	--sequencer.canton.proposer-party-id ${ZENITH_VALIDATOR{{ sq.validator_id }}_PARTY} \
 	--sequencer.canton.user-id {{ sq.canton_user_id | default('participant_admin') }} \
+{% if sq.metrics_port is defined %}
+	--metrics 127.0.0.1:{{ sq.metrics_port }} \
+{% endif %}
 	--sequencer.canton.no-tls
 
 Restart=on-failure

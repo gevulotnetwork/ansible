@@ -22,17 +22,18 @@
   loop: "{{ zenith_evm_release_assets }}"
   loop_control:
     label: "{{ item.name }}"
+  register: zenith_evm_downloads
 
 - name: Extract Zenith EVM binaries from tarballs
   ansible.builtin.command:
-    cmd: "tar xzf {{ zenith_download_dir }}/{{ item.asset }} --strip-components=1 -C {{ zenith_download_dir }}"
-    creates: "{{ zenith_download_dir }}/{{ item.binary | default(item.name) }}"
+    cmd: "tar xzf {{ zenith_download_dir }}/{{ item.item.asset }} --strip-components=1 -C {{ zenith_download_dir }}"
   delegate_to: localhost
   become: false
   run_once: true
-  loop: "{{ zenith_evm_release_assets }}"
+  loop: "{{ zenith_evm_downloads.results }}"
   loop_control:
-    label: "{{ item.name }}"
+    label: "{{ item.item.name }}"
+  when: item.changed or not (zenith_download_dir ~ '/' ~ (item.item.binary | default(item.item.name))) is file
 
 - name: Install Zenith EVM binaries
   ansible.builtin.copy:

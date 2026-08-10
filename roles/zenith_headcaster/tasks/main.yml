@@ -1,3 +1,35 @@
+- name: Ensure headcaster data directories exist
+  ansible.builtin.file:
+    path: "{{ zenith_data_dir }}/headcaster-{{ hc.id }}"
+    state: directory
+    owner: "{{ canton_user }}"
+    group: "{{ canton_group }}"
+    mode: "0750"
+  loop: "{{ zenith_headcasters }}"
+  loop_control:
+    loop_var: hc
+
+- name: Generate libp2p Ed25519 keypair for headcaster
+  ansible.builtin.shell: |
+    set -e
+    TMPDIR=$(mktemp -d)
+    trap 'rm -rf $TMPDIR' EXIT
+    OUTFILE="{{ zenith_data_dir }}/headcaster-{{ hc.id }}/keypair"
+    openssl genpkey -algorithm ed25519 -outform DER 2>/dev/null > $TMPDIR/priv.der
+    openssl pkey -inform DER -in $TMPDIR/priv.der -outform DER -pubout 2>/dev/null > $TMPDIR/pub.der
+    python3 -c "
+    priv=open('$TMPDIR/priv.der','rb').read()
+    pub=open('$TMPDIR/pub.der','rb').read()
+    open('$OUTFILE','wb').write(b'\x08\x01\x12\x40'+priv[16:48]+pub[12:44])
+    "
+    chown {{ canton_user }}:{{ canton_group }} $OUTFILE
+    chmod 600 $OUTFILE
+  args:
+    creates: "{{ zenith_data_dir }}/headcaster-{{ hc.id }}/keypair"
+  loop: "{{ zenith_headcasters }}"
+  loop_control:
+    loop_var: hc
+
 - name: Deploy zenith-headcaster user services
   ansible.builtin.template:
     src: zenith-headcaster.service.j2

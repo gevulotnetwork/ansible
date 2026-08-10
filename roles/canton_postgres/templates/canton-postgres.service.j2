@@ -17,7 +17,10 @@ ExecStart=/usr/bin/podman run --name canton-postgres \
     -v canton-postgres-data:/var/lib/postgresql/data \
     --rm \
     {{ canton_postgres_image }} \
-    -c max_connections={{ canton_postgres_max_connections }}
+    -c max_connections={{ canton_postgres_max_connections }} \
+    -c tcp_keepalives_idle={{ canton_postgres_tcp_keepalives_idle }} \
+    -c tcp_keepalives_interval={{ canton_postgres_tcp_keepalives_interval }} \
+    -c tcp_keepalives_count={{ canton_postgres_tcp_keepalives_count }}
 
 ExecStop=/usr/bin/podman stop canton-postgres
 

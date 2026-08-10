@@ -1,1 +1,7 @@
 cloudflared_image: "docker.io/cloudflare/cloudflared:latest"
+
+cloudflared_tunnels:
+  - name: cloudflared
+    token: "{{ cloudflared_tunnel_token }}"
+    after: canton-evm-explorer.service
+    wanted_by: canton-evm-explorer.target

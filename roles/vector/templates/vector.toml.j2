@@ -27,26 +27,31 @@ scrape_interval_secs = 60
 {% endif %}
 {% endfor %}
 
-# Canton service logs (collected per-service from journald)
-{% for svc in canton_services | default([]) %}
-[sources.canton_{{ svc.name | replace('-', '_') }}_logs]
-type = "journald"
-include_units = ["{{ svc.name }}.service"]
-{% endfor %}
-
-# Systemd journal logs
+# Canton/Zenith service logs from journald (user-level units)
 [sources.journald_logs]
 type = "journald"
-include_units = ["*.service"]
+include_matches._SYSTEMD_USER_UNIT = [
+{% for svc in canton_services | default([]) %}
+  "{{ svc.name }}.service",
+{% endfor %}
+]
 
 # ─────────────────────────────────────────────────────────
-# TRANSFORMS
+# TRANSFORMS — METRICS
 # ─────────────────────────────────────────────────────────
 
-# Add instance label to node exporter metrics
+# Filter node exporter metrics to cpu/mem/network/disk/io
+[transforms.filter_node_exporter_metrics]
+type = "filter"
+inputs = ["node_exporter_metrics"]
+condition = '''
+match(to_string(.name) ?? "", r'^node_(cpu|memory|network|disk|filesystem|load|vmstat|boot_time|time)')
+'''
+
+# Add instance labels to node exporter metrics
 [transforms.label_node_exporter_metrics]
 type = "remap"
-inputs = ["node_exporter_metrics"]
+inputs = ["filter_node_exporter_metrics"]
 source = '''
 .tags.chain_id = "{{ chain_id }}"
 .tags.network = "{{ network }}"
@@ -68,6 +73,7 @@ source = '''
 .tags.region = "{{ region }}"
 .tags.node_id = "{{ node_id }}"
 .tags.instance = "{{ fqdn }}"
+.tags.service = "{{ svc.name }}"
 .tags.canton_service = "{{ svc.name }}"
 .tags.canton_service_type = "{{ svc.type }}"
 .tags.job = "canton-{{ svc.type }}"
@@ -92,28 +98,23 @@ condition = '''
 match(to_string(.name) ?? "", r'^(vector_|component_|buffer_)')
 '''
 
-# Add labels to Canton service logs
-{% for svc in canton_services | default([]) %}
-[transforms.label_canton_{{ svc.name | replace('-', '_') }}_logs]
-type = "remap"
-inputs = ["canton_{{ svc.name | replace('-', '_') }}_logs"]
-source = '''
-.canton_service = "{{ svc.name }}"
-.canton_service_type = "{{ svc.type }}"
-.instance = "{{ fqdn }}"
-.component = "canton"
-.unit = "{{ svc.name }}.service"
-'''
-{% endfor %}
+# ─────────────────────────────────────────────────────────
+# TRANSFORMS — LOGS
+# ─────────────────────────────────────────────────────────
 
-# Add labels to journal logs
+# Add labels to all journal logs
 [transforms.label_journald_logs]
 type = "remap"
 inputs = ["journald_logs"]
 source = '''
-.unit = ._SYSTEMD_UNIT ?? ""
+.network = "{{ network }}"
+.region = "{{ region }}"
+.node_id = "{{ node_id }}"
 .instance = "{{ fqdn }}"
-.component = "vector.source.journald"
+.unit = to_string!(._SYSTEMD_USER_UNIT)
+.service = replace(to_string!(._SYSTEMD_USER_UNIT), r'\.service$', "")
+p = to_string!(.PRIORITY)
+.level = get!({"0":"critical","1":"critical","2":"critical","3":"error","4":"warn","5":"info","6":"info","7":"debug"}, [p])
 '''
 
 # ─────────────────────────────────────────────────────────
@@ -133,6 +134,7 @@ inputs = [
 {% endfor %}
 ]
 endpoint = "{{ grafana_vector.metrics_service.url }}"
+healthcheck.enabled = false
 
 [sinks.grafana_prometheus.auth]
 strategy = "basic"
@@ -142,14 +144,10 @@ password = "{{ grafana_vector.metrics_service.auth.password }}"
 # Send logs to Grafana Cloud Loki
 [sinks.grafana_loki]
 type = "loki"
-inputs = [
-  "label_journald_logs",
-{% for svc in canton_services | default([]) %}
-  "label_canton_{{ svc.name | replace('-', '_') }}_logs",
-{% endfor %}
-]
+inputs = ["label_journald_logs"]
 endpoint = "{{ grafana_vector.loki_service.url }}"
-encoding.codec = "json"
+encoding.codec = "text"
+healthcheck.enabled = false
 
 [sinks.grafana_loki.auth]
 strategy = "basic"
@@ -157,8 +155,10 @@ user = "{{ grafana_vector.loki_service.auth.username }}"
 password = "{{ grafana_vector.loki_service.auth.password }}"
 
 [sinks.grafana_loki.labels]
-unit = "{{ '{{' }} unit {{ '}}' }}"
+network = "{{ '{{' }} network {{ '}}' }}"
+region = "{{ '{{' }} region {{ '}}' }}"
+node_id = "{{ '{{' }} node_id {{ '}}' }}"
 instance = "{{ '{{' }} instance {{ '}}' }}"
-component = "{{ '{{' }} component {{ '}}' }}"
-canton_service = "{{ '{{' }} canton_service {{ '}}' }}"
-canton_service_type = "{{ '{{' }} canton_service_type {{ '}}' }}"
+unit = "{{ '{{' }} unit {{ '}}' }}"
+service = "{{ '{{' }} service {{ '}}' }}"
+level = "{{ '{{' }} level {{ '}}' }}"

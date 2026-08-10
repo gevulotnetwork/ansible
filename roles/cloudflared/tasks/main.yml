@@ -1,10 +1,20 @@
-- name: Deploy cloudflared user service
+- name: Get canton user UID
+  ansible.builtin.command:
+    cmd: "id -u {{ canton_user }}"
+  register: canton_uid
+  changed_when: false
+
+- name: Deploy cloudflared user services
   ansible.builtin.template:
     src: cloudflared.service.j2
-    dest: "{{ canton_systemd_dir }}/cloudflared.service"
+    dest: "{{ canton_systemd_dir }}/{{ tunnel.name }}.service"
     owner: "{{ canton_user }}"
     group: "{{ canton_group }}"
     mode: "0644"
+  loop: "{{ cloudflared_tunnels }}"
+  loop_control:
+    loop_var: tunnel
+    label: "{{ tunnel.name }}"
   notify:
     - Reload user systemd
 
@@ -18,22 +28,30 @@
     XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
     DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"
 
-- name: Enable cloudflared service
+- name: Enable cloudflared services
   become: true
   become_user: "{{ canton_user }}"
   ansible.builtin.command:
-    cmd: systemctl --user enable cloudflared.service
+    cmd: "systemctl --user enable {{ tunnel.name }}.service"
   changed_when: false
   environment:
     XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
     DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"
+  loop: "{{ cloudflared_tunnels }}"
+  loop_control:
+    loop_var: tunnel
+    label: "{{ tunnel.name }}"
 
-- name: Start cloudflared service
+- name: Start cloudflared services
   become: true
   become_user: "{{ canton_user }}"
   ansible.builtin.command:
-    cmd: systemctl --user restart cloudflared.service
-  changed_when: false
+    cmd: "systemctl --user restart {{ tunnel.name }}.service"
+  changed_when: true
   environment:
     XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
     DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"
+  loop: "{{ cloudflared_tunnels }}"
+  loop_control:
+    loop_var: tunnel
+    label: "{{ tunnel.name }}"

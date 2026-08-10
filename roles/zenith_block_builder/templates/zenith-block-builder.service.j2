@@ -19,7 +19,14 @@ ExecStart=%h/zenith/bin/block-builder-node node \
 	--authrpc.port {{ bb.authrpc_port }} \
 	--port {{ bb.p2p_port }} \
 	--discovery.port {{ bb.p2p_port }} \
-	--log.file.directory %h/zenith/data/block-builder-{{ bb.id }}/logs
+	--p2p-secret-key %h/zenith/data/block-builder-{{ bb.id }}/p2p.key \
+{% if bb.metrics_port is defined %}
+	--metrics 127.0.0.1:{{ bb.metrics_port }} \
+{% endif %}
+	--log.file.directory %h/zenith/data/block-builder-{{ bb.id }}/logs \
+{% if bb.trusted_peers is defined %}
+	--trusted-peers {{ bb.trusted_peers | join(',') }} \
+{% endif %}
 
 Restart=on-failure
 RestartSec=10

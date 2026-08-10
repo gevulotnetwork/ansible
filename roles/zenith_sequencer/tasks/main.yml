@@ -1,3 +1,9 @@
+- name: Look up canton user UID
+  ansible.builtin.command:
+    cmd: "id -u {{ canton_user }}"
+  register: canton_uid
+  changed_when: false
+
 - name: Create sequencer data directories
   ansible.builtin.file:
     path: "{{ zenith_data_dir }}/sequencer-{{ sq.id }}"
@@ -30,6 +36,7 @@
   loop: "{{ zenith_sequencers }}"
   loop_control:
     loop_var: sq
+  register: sequencer_service_changed
   notify:
     - Reload user systemd
 
@@ -56,13 +63,13 @@
   loop_control:
     loop_var: sq
 
-- name: Restart zenith-sequencer services if binaries changed
+- name: Restart zenith-sequencer services
   become: true
   become_user: "{{ canton_user }}"
   ansible.builtin.command:
     cmd: "systemctl --user restart zenith-sequencer-{{ sq.id }}.service"
   changed_when: true
-  when: zenith_evm_binaries_changed | default(false)
+  when: (zenith_evm_binaries_changed | default(false)) or (sequencer_service_changed is changed)
   environment:
     XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
     DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"

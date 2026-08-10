@@ -1,3 +1,4 @@
+vector_version: "0.45.0"
 vector_base_dir: /etc/vector
 vector_data_dir: /var/lib/vector
 fqdn: "{{ inventory_hostname }}.{{ region }}.{{ network }}.{{ domain }}"
