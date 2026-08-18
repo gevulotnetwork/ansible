@@ -22,6 +22,7 @@
     rule: allow
     port: "{{ item.port | string }}"
     proto: "{{ item.proto }}"
+    from_ip: "{{ item.from | default('any') }}"
     comment: "{{ item.comment | default(omit) }}"
   loop: "{{ firewall_allowed_ports }}"
   notify: reload ufw

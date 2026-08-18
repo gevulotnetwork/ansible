@@ -1,8 +1,7 @@
 [Unit]
 Description=Canton EVM Explorer Indexer (Podman)
-After=canton-postgres-init.service zenith-sequencer-1.service
+After=canton-postgres-init.service
 Requires=canton-postgres-init.service
-Wants=zenith-sequencer-1.service
 
 [Service]
 Type=simple

@@ -1,8 +1,11 @@
 [Unit]
 Description=Canton EVM Explorer Stack
-After=zenith.target canton-postgres.service
+After=canton-postgres.service
 Requires=canton-postgres.service
-Wants=canton-evm-explorer-indexer.service canton-evm-explorer.service cloudflared.service
+Wants=canton-evm-explorer-indexer.service canton-evm-explorer.service
+{% for tunnel in cloudflared_tunnels | default([]) %}
+Wants={{ tunnel.name }}.service
+{% endfor %}
 
 [Install]
 WantedBy=default.target

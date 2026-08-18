@@ -16,7 +16,7 @@ ExecStart=/usr/bin/podman run \
     --network host \
     --rm \
     {{ cloudflared_image }} \
-    tunnel --no-autoupdate run --token {{ tunnel.token }}
+    tunnel --no-autoupdate{% if tunnel.protocol is defined %} --protocol {{ tunnel.protocol }}{% endif %} run --token {{ tunnel.token }}
 
 ExecStop=/usr/bin/podman stop {{ tunnel.name }}
 
