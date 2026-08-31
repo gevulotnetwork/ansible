@@ -2,11 +2,103 @@
 # canton-test-01: All-in-one Zenith-Canton deployment
 # ─────────────────────────────────────────────────────────
 
+network: "testnet"
+
+# Explorer runs on canton-explorer, not here
+canton_evm_explorer_enabled: false
+grpc_proxy_server_name: "synchronizer.testnet.zenith.network"
+
+# Cloudflare Origin Certificate for gRPC proxy
+grpc_proxy_ssl_cert: |
+  -----BEGIN CERTIFICATE-----
+  MIIEoDCCA4igAwIBAgIUGBuIem8P6vW/j+EuSuzdC6ZXf+swDQYJKoZIhvcNAQEL
+  BQAwgYsxCzAJBgNVBAYTAlVTMRkwFwYDVQQKExBDbG91ZEZsYXJlLCBJbmMuMTQw
+  MgYDVQQLEytDbG91ZEZsYXJlIE9yaWdpbiBTU0wgQ2VydGlmaWNhdGUgQXV0aG9y
+  aXR5MRYwFAYDVQQHEw1TYW4gRnJhbmNpc2NvMRMwEQYDVQQIEwpDYWxpZm9ybmlh
+  MB4XDTI2MDgxMzEyNTQwMFoXDTQxMDgwOTEyNTQwMFowYjEZMBcGA1UEChMQQ2xv
+  dWRGbGFyZSwgSW5jLjEdMBsGA1UECxMUQ2xvdWRGbGFyZSBPcmlnaW4gQ0ExJjAk
+  BgNVBAMTHUNsb3VkRmxhcmUgT3JpZ2luIENlcnRpZmljYXRlMIIBIjANBgkqhkiG
+  9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuYknX0WFzolwJDpZhOMk7i8dXAAnahNtXVSj
+  rofleB9gAyQ27B+m63j5XV81F1EQcku81x3McIfqTmMzXfbfOZmxSGg2ZGaMWs8C
+  J36OE6JrQ25PNvI6xQg7OJg++cYDSHaksZjuOLQeB+Na3y6s6uZnViYDEcUaQt9Y
+  uPNs42JjyVR+S9VORRSEdm4jiafZ/Epn3ivevaEE05f8As6gzl5YG0n9DtxbzPIr
+  pn7XmjZCDQ4FgZ+aKiATQcgxQMF1BIgMPKmCFi8Iwm3QmtPMtMXCx4S7Jy79AcWL
+  2mKDOeC/nqcrDUteK6KZTTjTcj8Jx+FA0ozqL44FojMxdHq8UwIDAQABo4IBIjCC
+  AR4wDgYDVR0PAQH/BAQDAgWgMB0GA1UdJQQWMBQGCCsGAQUFBwMCBggrBgEFBQcD
+  ATAMBgNVHRMBAf8EAjAAMB0GA1UdDgQWBBTrphT40eoIR/OQUtzXJpCpBQDT2DAf
+  BgNVHSMEGDAWgBQk6FNXXXw0QIep65TbuuEWePwppDBABggrBgEFBQcBAQQ0MDIw
+  MAYIKwYBBQUHMAGGJGh0dHA6Ly9vY3NwLmNsb3VkZmxhcmUuY29tL29yaWdpbl9j
+  YTAjBgNVHREEHDAaghgqLnRlc3RuZXQuemVuaXRoLm5ldHdvcmswOAYDVR0fBDEw
+  LzAtoCugKYYnaHR0cDovL2NybC5jbG91ZGZsYXJlLmNvbS9vcmlnaW5fY2EuY3Js
+  MA0GCSqGSIb3DQEBCwUAA4IBAQAK5YaXJcTcnpOtS/e7AikHjyaqlMKsda8VQz7B
+  YMVygHPoPaqh2omnfagKqsjHCCXQT/e1se6XZA27HIkvnNPbsEUPOtoVZfA3ngGO
+  vPc5OA5YmIA3xmheddLj/S8OLoKxRQHN+9LTM3PAcAwvYRrFht9fdPE5/P5EWvo/
+  cQ86GvwDQAyEUICtkietIWM1IS/rySRinuyDsUCFWGXttjIvPdnQtiSmeC3gmbQm
+  QyhncR848Kl9ILzdiIsmJOAGirg/DAjoNx8mEABLlz68sa1jd3hAqyIFGbBRvY7W
+  51k/lR9kVnbBsqHdBqmy3EBq7Iv2XispNJUIebEV8qi9jWO/
+  -----END CERTIFICATE-----
+
+grpc_proxy_ssl_key: |
+  -----BEGIN PRIVATE KEY-----
+  MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQC5iSdfRYXOiXAk
+  OlmE4yTuLx1cACdqE21dVKOuh+V4H2ADJDbsH6brePldXzUXURByS7zXHcxwh+pO
+  YzNd9t85mbFIaDZkZoxazwInfo4TomtDbk828jrFCDs4mD75xgNIdqSxmO44tB4H
+  41rfLqzq5mdWJgMRxRpC31i482zjYmPJVH5L1U5FFIR2biOJp9n8SmfeK969oQTT
+  l/wCzqDOXlgbSf0O3FvM8iumfteaNkINDgWBn5oqIBNByDFAwXUEiAw8qYIWLwjC
+  bdCa08y0xcLHhLsnLv0BxYvaYoM54L+epysNS14roplNONNyPwnH4UDSjOovjgWi
+  MzF0erxTAgMBAAECggEAF5QZ5X5SWO3CdfgsXuT2+9tk9xzV5XcpPjkpbAln3MeF
+  TiDmEe/xKJpWe8qZAVOTVtMlNo6vkoV9/g7r/Omzc1XYNS7OlXKALRzYVeiRabwJ
+  tvy9IxXO6Nyjmgz5w92plntCxtx75HI6IXUqm+kJ9KLp8wV1p7vNcJODFPi/7SLh
+  E8UHU031AFKDVsvrjDoJ/Rc/l+QX6afhqaopOEczTMvuG49HjaxCsNVItrLELkae
+  Loquv0zK9+qFYTbK+LETOq1O9Jk+jp+jGQiaT5g6Qs79WxPp9jmB6itG6WMSrGz/
+  b9UoV8gXJ+Uk4rTo/kS358q2tkxcRCrvDl7LTVNJUQKBgQDkNUQL/ROn5rSJPZqP
+  37KDRkjQz/LZdYVO2gkR4CzMbs+OsahngSKqIjiawhCepiFEl0bqcKDADsPgD7BW
+  8wJ3Low7zp46mMhbywBh0w+9sLmzUqt9XliLW3m11lbujlXP/CC5dyTCewm48NC8
+  2rvl9oHuB/yNYIPjP2DoNOCQdwKBgQDQIYN+M/SFU+swudfUFadcriP0J3+ULSsU
+  dFk9n+I0zmY6EefQtCcQ+uimGf2iwoeQeKP21oboOWVXIBiqrUaghnsOmpYdTU02
+  m42K43lpo2QwbNagoZJjMUtU261w6EogMdMD02gxa+aJHOOpO80hGOjYwQCeM4is
+  K+3rMFvmBQKBgGKpnMfKHKtklP0YwzAcuKMEygptPUNDCeVzYqR11Sh1aAr7SCGn
+  tQL1VJ+j82eDz7JF7QUCuJ0QRSMj5UtSOOiqGTrqM4KF92moNHwWsiGCvGaJAVds
+  aL+nRtGU33S32OXYzZUhq6ThaOyqQLTFpKLhln8AuPGunparGgyKf+Q1AoGAOiRi
+  m2rgMC7VUPNZu8Gg019CY/50wWws0LYACBsWEjJmlGpUHBV3pGKzg1NXa5R0UoOh
+  Kl+bqFwAV2p7+ZIWXNm0nsvIi78AhvTFgbsyO7SNVInTG2SHhHZM2RPVS+lYa83/
+  aN4yCTxfVoZfgvNVxp0yzvp7tbYnxBExkbYcthECgYAeEF0Fx9E0vnr1geIuTNWt
+  8oW4yZEm/rq8d/zZTYgnS6oSEjurht6OwfaR6IlQJ6mP1wH+W+MSTtD8X4/RIu/k
+  /R9lM306/VCamfwpiwhiZrhStF4AVNJ2+ik86ZJS7I4V3w54g+tYEH19bBFtLh09
+  Nz08CtGF6ali/dy/9mNTEA==
+  -----END PRIVATE KEY-----
+
+# Block-builder-1 enode pubkey (derived from discovery-secret, for sequencer p2p sync)
+bb1_enode_pubkey: "479a96cd893ba1e20c68c2c8bc71d50fb7785c4a2320b88996900145a51d1597b963f01aac14ef1573bb6276331d412e2f9c518192b03e09db37888cc3888381"
+bb2_enode_pubkey: "ecafe56178802508a890a8c9c3251caff52c4d5a6939650e947cbd0e9960fc34d233fb213540a985a6ddfe2b57804b72a3b14e860b436d8f98675c1cef6fbf45"
+bb3_enode_pubkey: "ea5a5fb8dc4599203483ce3e6dcf345707f3b8364d602b46442cda88c972e1a8550ae28888cb9c668a9b60ac6688eca2a1b4bd8de8a47ef7b466e61a583ebd6c"
+
+# Cloudflare tunnels (host-specific)
+cloudflared_tunnel_token: "eyJhIjoiMDBjODg4ZTFhYjRiYTFmZTBlZWIwYjI1ZWVkMGYwNzEiLCJ0IjoiNWFiZDJhN2MtZjc2OC00M2U3LWIyMWQtNTc0YTg0NWJhOGMxIiwicyI6Ik5qazFPREkyTjJJdE5USTJaQzAwTXpFMUxUZzVZalV0Wm1ObU1UaGlObUk0T0RGaiJ9"
+cloudflared_tunnel_token_rpc: "eyJhIjoiMDBjODg4ZTFhYjRiYTFmZTBlZWIwYjI1ZWVkMGYwNzEiLCJ0IjoiYWNiM2E4ZDUtMDFmZi00NGI2LWE4MzgtZWY0M2Y4OTNkODIyIiwicyI6Ik9EQXlOR1F3TkdRdE9XVmlZeTAwWlRKaUxXRTNZekl0T1RJM01qUmlaakUzTjJJdyJ9"
+
+cloudflared_tunnels:
+  - name: cloudflared
+    token: "{{ cloudflared_tunnel_token }}"
+    after: canton-evm-explorer.service
+    wanted_by: canton-evm-explorer.target
+  - name: cloudflared-rpc
+    token: "{{ cloudflared_tunnel_token_rpc }}"
+    after: zenith-sequencer-1.service
+    wanted_by: zenith.target
+
 # Sequencer-Mediator ports
 canton_sequencer_mediator_config: sequencer-mediator.conf
 canton_sequencer_public_api_port: 5008
 canton_sequencer_admin_api_port: 5009
 canton_mediator_admin_api_port: 5007
+
+# Firewall — allow explorer VM to reach Ledger API + Sequencer RPC
+firewall_allowed_ports:
+  - { port: 22, proto: tcp, comment: "SSH" }
+  - { port: 443, proto: tcp, comment: "HTTPS / gRPC proxy" }
+  - { port: 5013, proto: tcp, from: "10.156.0.0/20", comment: "Canton HTTP Ledger API (explorer)" }
+  - { port: 9200, proto: tcp, comment: "Zenith Sequencer RPC" }
 
 # All services on this host (for Vector / monitoring)
 canton_services:
@@ -14,31 +106,55 @@ canton_services:
     type: postgres
   - name: canton-sequencer-mediator
     type: sequencer-mediator
+    metrics_port: 5010
   - name: canton-participant1
     type: participant
+    metrics_port: 5014
   - name: canton-participant2
     type: participant
+    metrics_port: 5024
   - name: canton-participant3
     type: participant
+    metrics_port: 5034
   - name: canton-network-setup
     type: setup
   - name: zenith-deploy-contract
     type: setup
   - name: zenith-block-builder-1
     type: block-builder
+    metrics_port: 6300
   - name: zenith-block-builder-2
     type: block-builder
+    metrics_port: 6301
+  - name: zenith-block-builder-3
+    type: block-builder
+    metrics_port: 6302
   - name: zenith-ecs-1
     type: ecs
   - name: zenith-ecs-2
     type: ecs
+  - name: zenith-ecs-3
+    type: ecs
+  - name: zenith-headcaster-1
+    type: headcaster
+  - name: zenith-headcaster-2
+    type: headcaster
+  - name: zenith-headcaster-3
+    type: headcaster
+  - name: zenith-headcaster-4
+    type: headcaster
+  - name: zenith-sequencer-1
+    type: sequencer
+    metrics_port: 6310
+  - name: zenith-validator-1
+    type: validator
+  - name: zenith-validator-2
+    type: validator
+  - name: zenith-validator-3
+    type: validator
   - name: canton-evm-explorer-indexer
     type: explorer
   - name: canton-evm-explorer
     type: explorer
-  - name: zenith-headcaster-1
-    type: headcaster
-  - name: zenith-sequencer-1
-    type: sequencer
   - name: cloudflared
     type: tunnel

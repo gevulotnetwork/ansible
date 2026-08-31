@@ -1,0 +1,53 @@
+# ─────────────────────────────────────────────────────────
+# canton-explorer-01: Standalone Canton EVM Explorer
+# ─────────────────────────────────────────────────────────
+# Flip to "devnet" and change canton_backend_host to point at devnet
+network: "testnet"
+
+# Remote Canton backend
+canton_backend_host: "canton-test-01.europe-west3-a.c.zenith-development-489709.internal"
+canton_backend_vm: "canton-test-01"
+canton_evm_explorer_evm_rpc_url: "http://{{ canton_backend_host }}:9200"
+canton_evm_explorer_canton_http_api_url: "http://{{ canton_backend_host }}:5013"
+
+# ─────────────────────────────────────────────────────────
+# PostgreSQL — only the explorer database
+# ─────────────────────────────────────────────────────────
+canton_postgres_databases:
+  - canton_evm_final
+
+# ─────────────────────────────────────────────────────────
+# Explorer faucet
+# ─────────────────────────────────────────────────────────
+canton_evm_explorer_faucet_private_key: "0xfddd908a2ae26924cdc10cf06b3e437470684ba7de654fb6014f6cf19b303559"
+canton_evm_explorer_faucet_wctn_address: "0x5594a2bb5e4b0929206187546030d64b027cac37"
+
+# ─────────────────────────────────────────────────────────
+# Cloudflare tunnel
+# ─────────────────────────────────────────────────────────
+cloudflared_tunnel_token: "eyJhIjoiMDBjODg4ZTFhYjRiYTFmZTBlZWIwYjI1ZWVkMGYwNzEiLCJ0IjoiNWFiZDJhN2MtZjc2OC00M2U3LWIyMWQtNTc0YTg0NWJhOGMxIiwicyI6Ik5qazFPREkyTjJJdE5USTJaQzAwTXpFMUxUZzVZalV0Wm1ObU1UaGlObUk0T0RGaiJ9"
+
+cloudflared_tunnels:
+  - name: cloudflared-explorer
+    token: "{{ cloudflared_tunnel_token }}"
+    after: canton-evm-explorer.service
+    wanted_by: canton-evm-explorer.target
+
+# ─────────────────────────────────────────────────────────
+# Firewall — SSH only (explorer is behind cloudflared)
+# ─────────────────────────────────────────────────────────
+firewall_allowed_ports:
+  - { port: 22, proto: tcp, comment: "SSH" }
+
+# ─────────────────────────────────────────────────────────
+# Services on this host (for Vector / monitoring)
+# ─────────────────────────────────────────────────────────
+canton_services:
+  - name: canton-postgres
+    type: postgres
+  - name: canton-evm-explorer-indexer
+    type: explorer
+  - name: canton-evm-explorer
+    type: explorer
+  - name: cloudflared-explorer
+    type: tunnel
