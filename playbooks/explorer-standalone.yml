@@ -1,0 +1,154 @@
+---
+# Standalone Canton EVM Explorer deployment
+#
+# Deploys the explorer on a dedicated node (explorer_nodes group) with its own
+# Postgres, connecting back to Canton/EVM RPC endpoints on the canton node
+# via GCP internal IPs.
+#
+# Usage:
+#   ansible-playbook playbooks/explorer-standalone.yml
+#
+#   # Point at devnet instead of testnet:
+#   ansible-playbook playbooks/explorer-standalone.yml -e canton_backend_host=<devnet-internal-ip>
+#
+# Service startup order (managed by systemd dependencies):
+#   postgres → postgres-init → explorer-indexer → explorer-web → cloudflared
+
+- name: Standalone Canton EVM Explorer
+  hosts: explorer_nodes
+  become: true
+  vars:
+    gcp_zone: "{{ lookup('env', 'GCP_ZONE') | default('europe-west3-a', true) }}"
+
+  pre_tasks:
+    # ── GCP firewall + network tags ──────────────────────────
+    - name: Create GCP firewall rule (explorer → canton backend)
+      ansible.builtin.command:
+        cmd: >
+          gcloud compute firewall-rules create allow-explorer-to-canton
+          --project {{ gcp_project }}
+          --allow tcp:5013,tcp:9200
+          --source-tags explorer
+          --target-tags canton-node
+          --description "Explorer → Canton backend (HTTP Ledger API + Sequencer RPC)"
+          --quiet
+      delegate_to: localhost
+      become: false
+      register: gcp_fw_explorer
+      changed_when: gcp_fw_explorer.rc == 0
+      failed_when: gcp_fw_explorer.rc != 0 and 'already exists' not in gcp_fw_explorer.stderr
+      run_once: true
+
+    - name: Tag explorer VM
+      ansible.builtin.command:
+        cmd: >
+          gcloud compute instances add-tags {{ inventory_hostname }}
+          --tags explorer
+          --zone {{ gcp_zone }}
+          --project {{ gcp_project }}
+          --quiet
+      delegate_to: localhost
+      become: false
+      register: tag_explorer
+      changed_when: "'updated' in (tag_explorer.stderr | default(''))"
+      failed_when: tag_explorer.rc != 0
+
+    - name: Tag canton backend VM
+      ansible.builtin.command:
+        cmd: >
+          gcloud compute instances add-tags {{ canton_backend_vm }}
+          --tags canton-node
+          --zone {{ gcp_zone }}
+          --project {{ gcp_project }}
+          --quiet
+      delegate_to: localhost
+      become: false
+      register: tag_canton
+      changed_when: "'updated' in (tag_canton.stderr | default(''))"
+      failed_when: tag_canton.rc != 0
+      run_once: true
+
+    # ── Base setup ───────────────────────────────────────────
+    - name: Install required packages
+      ansible.builtin.package:
+        name:
+          - podman
+          - dbus-user-session
+        state: present
+
+    - name: Create canton group
+      ansible.builtin.group:
+        name: "{{ canton_group }}"
+        state: present
+
+    - name: Create canton user
+      ansible.builtin.user:
+        name: "{{ canton_user }}"
+        group: "{{ canton_group }}"
+        home: "{{ canton_user_home }}"
+        shell: /bin/bash
+        system: false
+        create_home: true
+
+    - name: Get canton user UID
+      ansible.builtin.command:
+        cmd: "id -u {{ canton_user }}"
+      register: canton_uid
+      changed_when: false
+
+    - name: Enable lingering for canton user
+      ansible.builtin.command:
+        cmd: "loginctl enable-linger {{ canton_user }}"
+      changed_when: false
+
+    - name: Ensure XDG_RUNTIME_DIR exists
+      ansible.builtin.file:
+        path: "/run/user/{{ canton_uid.stdout }}"
+        state: directory
+        owner: "{{ canton_user }}"
+        group: "{{ canton_group }}"
+        mode: "0700"
+
+    - name: Start user systemd instance
+      ansible.builtin.command:
+        cmd: "systemctl start user@{{ canton_uid.stdout }}.service"
+      changed_when: false
+
+    - name: Start user D-Bus socket
+      become_user: "{{ canton_user }}"
+      ansible.builtin.command:
+        cmd: "systemctl --user start dbus.socket"
+      changed_when: false
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+
+    - name: Wait for user D-Bus socket
+      ansible.builtin.wait_for:
+        path: "/run/user/{{ canton_uid.stdout }}/bus"
+        timeout: 10
+
+    - name: Create required directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ canton_user }}"
+        group: "{{ canton_group }}"
+        mode: "0755"
+      loop:
+        - "{{ canton_systemd_dir }}"
+        - "{{ canton_user_home }}/.config/containers"
+
+    - name: Deploy container registry auth
+      ansible.builtin.copy:
+        content: "{{ podman_auth_json | to_nice_json }}"
+        dest: "{{ canton_user_home }}/.config/containers/auth.json"
+        owner: "{{ canton_user }}"
+        group: "{{ canton_group }}"
+        mode: "0600"
+      when: podman_auth_json is defined
+
+  roles:
+    - firewall
+    - canton_postgres
+    - canton_evm_explorer
+    - cloudflared

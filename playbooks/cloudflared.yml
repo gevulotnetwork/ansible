@@ -8,7 +8,7 @@
 #   ansible-playbook playbooks/cloudflared.yml --limit canton-test-01
 
 - name: Deploy Cloudflare Tunnel
-  hosts: canton_nodes
+  hosts: canton_nodes:explorer_nodes
   become: true
   roles:
     - cloudflared

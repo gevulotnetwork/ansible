@@ -1,0 +1,26 @@
+---
+# Stop Canton EVM Explorer services (indexer + web).
+#
+# Usage:
+#   ansible-playbook playbooks/explorer-stop.yml -l canton-test-01
+- name: Stop Canton EVM Explorer
+  hosts: canton_nodes
+  become: true
+  tasks:
+    - name: Get canton user UID
+      ansible.builtin.command:
+        cmd: "id -u {{ canton_user }}"
+      register: canton_uid
+      changed_when: false
+
+    - name: Stop explorer services
+      become_user: "{{ canton_user }}"
+      ansible.builtin.command:
+        cmd: "systemctl --user stop {{ item }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+        DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"
+      loop:
+        - canton-evm-explorer.service
+        - canton-evm-explorer-indexer.service
+      changed_when: true

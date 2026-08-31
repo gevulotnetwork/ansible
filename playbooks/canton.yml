@@ -86,8 +86,10 @@
   hosts: canton_nodes
   become: true
   roles:
-    - canton_evm_explorer
-    - cloudflared
+    - role: canton_evm_explorer
+      when: canton_evm_explorer_enabled | default(true)
+    - role: cloudflared
+      when: cloudflared_enabled | default(true)
 
 # Ethereum test transactions (disabled — old zenith-canton contracts)
 # - name: Ethereum test transactions

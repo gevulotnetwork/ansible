@@ -55,4 +55,4 @@
   loop_control:
     loop_var: tunnel
     label: "{{ tunnel.name }}"
-  when: cloudflared_started | default(true)
+  when: cloudflared_started | default(true) | bool

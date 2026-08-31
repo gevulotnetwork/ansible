@@ -1,0 +1,77 @@
+---
+# Deploy nginx gRPC reverse proxy for Canton sequencer public API.
+# Terminates TLS on 443 and forwards to localhost:5008 (gRPC).
+# Required for Cloudflare gRPC proxying (needs TLS + HTTP/2 on origin).
+#
+# Run on all canton nodes:
+#   ansible-playbook playbooks/grpc-proxy.yml
+#
+# Run on specific host:
+#   ansible-playbook playbooks/grpc-proxy.yml -l canton-test-01
+- name: Deploy gRPC reverse proxy
+  hosts: canton_nodes
+  become: true
+  tasks:
+    - name: Install nginx
+      ansible.builtin.apt:
+        name: nginx
+        state: present
+        update_cache: true
+
+    - name: Create SSL directory
+      ansible.builtin.file:
+        path: /etc/nginx/ssl
+        state: directory
+        mode: "0700"
+
+    - name: Deploy Cloudflare origin certificate
+      ansible.builtin.copy:
+        content: "{{ grpc_proxy_ssl_cert }}"
+        dest: /etc/nginx/ssl/grpc.crt
+        mode: "0644"
+      notify: Restart nginx
+
+    - name: Deploy Cloudflare origin private key
+      ansible.builtin.copy:
+        content: "{{ grpc_proxy_ssl_key }}"
+        dest: /etc/nginx/ssl/grpc.key
+        mode: "0600"
+      notify: Restart nginx
+
+    - name: Deploy nginx gRPC proxy config
+      ansible.builtin.template:
+        src: templates/canton-grpc-proxy.conf.j2
+        dest: /etc/nginx/sites-available/canton-grpc-proxy.conf
+        mode: "0644"
+      notify: Restart nginx
+
+    - name: Enable site
+      ansible.builtin.file:
+        src: /etc/nginx/sites-available/canton-grpc-proxy.conf
+        dest: /etc/nginx/sites-enabled/canton-grpc-proxy.conf
+        state: link
+      notify: Restart nginx
+
+    - name: Remove default site
+      ansible.builtin.file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      notify: Restart nginx
+
+    - name: Enable and start nginx
+      ansible.builtin.systemd_service:
+        name: nginx
+        enabled: true
+        state: started
+
+    - name: Allow port 443 through UFW
+      community.general.ufw:
+        rule: allow
+        port: "443"
+        proto: tcp
+
+  handlers:
+    - name: Restart nginx
+      ansible.builtin.systemd_service:
+        name: nginx
+        state: restarted

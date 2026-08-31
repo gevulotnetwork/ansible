@@ -1,0 +1,11 @@
+server {
+    listen 443 ssl http2;
+    server_name {{ grpc_proxy_server_name }};
+
+    ssl_certificate     /etc/nginx/ssl/grpc.crt;
+    ssl_certificate_key /etc/nginx/ssl/grpc.key;
+
+    location / {
+        grpc_pass grpc://127.0.0.1:{{ canton_sequencer_public_api_port }};
+    }
+}

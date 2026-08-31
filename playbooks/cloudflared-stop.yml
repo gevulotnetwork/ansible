@@ -1,0 +1,31 @@
+---
+# Stop Cloudflare Tunnel services.
+#
+# Stop all tunnels on a host:
+#   ansible-playbook playbooks/cloudflared-stop.yml -l canton-test-01
+#
+# Stop a specific tunnel:
+#   ansible-playbook playbooks/cloudflared-stop.yml -l canton-test-01 -e cloudflared_stop_name=cloudflared
+- name: Stop Cloudflare Tunnels
+  hosts: canton_nodes:explorer_nodes
+  become: true
+  tasks:
+    - name: Get canton user UID
+      ansible.builtin.command:
+        cmd: "id -u {{ canton_user }}"
+      register: canton_uid
+      changed_when: false
+
+    - name: Stop cloudflared services
+      become_user: "{{ canton_user }}"
+      ansible.builtin.command:
+        cmd: "systemctl --user stop {{ tunnel.name }}.service"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ canton_uid.stdout }}"
+        DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ canton_uid.stdout }}/bus"
+      loop: "{{ cloudflared_tunnels }}"
+      loop_control:
+        loop_var: tunnel
+        label: "{{ tunnel.name }}"
+      when: cloudflared_stop_name is not defined or tunnel.name == cloudflared_stop_name
+      changed_when: true

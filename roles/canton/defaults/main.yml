@@ -25,11 +25,11 @@ zenith_evm_github_repo: zenith-network/zenith-evm
 zenith_download_dir: /tmp/zenith-releases
 zenith_evm_arch: x86_64-unknown-linux-gnu
 
-block_builder_version: "0.1.3"
-zenith_ecs_version: "0.1.3"
-headcaster_version: "0.2.1"
-sequencer_version: "0.1.4"
-validator_version: "0.1.6"
+block_builder_version: "0.1.3-prague-preview-3"
+zenith_ecs_version: "0.1.3-prague-preview-3"
+headcaster_version: "0.2.1-prague-preview-3"
+sequencer_version: "0.1.4-prague-preview-3"
+validator_version: "0.1.6-prague-preview-3"
 
 # Canton toolchain (canton.jar, damlc) from GitHub releases
 toolchain_version: "0.2.2"
