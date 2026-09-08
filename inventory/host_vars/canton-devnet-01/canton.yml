@@ -2,7 +2,6 @@
 # canton-devnet-01: All-in-one Zenith-Canton deployment
 # ─────────────────────────────────────────────────────────
 
-network: "devnet"
 grpc_proxy_server_name: "synchronizer-dev01.staging.zenith.network"
 
 # Cloudflare Origin Certificate for gRPC proxy

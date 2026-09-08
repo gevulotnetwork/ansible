@@ -1,9 +1,9 @@
 # ─────────────────────────────────────────────────────────
 # canton-explorer-01: Standalone Canton EVM Explorer
 # ─────────────────────────────────────────────────────────
-# Flip to "devnet" and change canton_backend_host to point at devnet
-network: "testnet"
-
+# Network is set by inventory group membership (see inventory/hosts.yml):
+# to point this at devnet, move the host to the `devnet` group and update
+# canton_backend_host below.
 # Remote Canton backend
 canton_backend_host: "canton-test-01.europe-west3-a.c.zenith-development-489709.internal"
 canton_backend_vm: "canton-test-01"

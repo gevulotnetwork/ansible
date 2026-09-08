@@ -2,8 +2,6 @@
 # canton-test-01: All-in-one Zenith-Canton deployment
 # ─────────────────────────────────────────────────────────
 
-network: "testnet"
-
 # Explorer runs on canton-explorer, not here
 canton_evm_explorer_enabled: false
 grpc_proxy_server_name: "synchronizer.testnet.zenith.network"
