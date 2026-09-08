@@ -17,6 +17,9 @@ ExecStart=/usr/bin/podman run \
     --network host \
     -e DATABASE_URL={{ canton_evm_explorer_db_url }} \
     -e EVM_RPC_URL={{ canton_evm_explorer_evm_rpc_url }} \
+{% if canton_evm_explorer_public_evm_rpc_url %}
+    -e PUBLIC_EVM_RPC_URL={{ canton_evm_explorer_public_evm_rpc_url }} \
+{% endif %}
     -e CANTON_HTTP_API_URL={{ canton_evm_explorer_canton_http_api_url }} \
     -e CHAIN_ID={{ canton_evm_explorer_chain_id }} \
     -e DEFAULT_NETWORK={{ canton_evm_explorer_default_network }} \

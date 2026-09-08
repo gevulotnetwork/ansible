@@ -4,6 +4,14 @@ canton_evm_explorer_db_name: "canton_evm_final"
 canton_evm_explorer_db_url: "postgresql://{{ canton_postgres_user }}:{{ canton_postgres_password }}@127.0.0.1:{{ canton_postgres_port }}/{{ canton_evm_explorer_db_name }}"
 canton_evm_explorer_canton_http_api_url: "http://127.0.0.1:5013"
 canton_evm_explorer_evm_rpc_url: "http://127.0.0.1:9200"
+
+# Browser-facing RPC endpoint, served to the UI (MetaMask "add network",
+# client-side calls). Distinct from canton_evm_explorer_evm_rpc_url above,
+# which is the internal address the server itself dials.
+# Defaults to the network's public endpoint; see group_vars/{testnet,devnet}.
+# Left empty the env var is omitted entirely rather than leaking an
+# internal hostname to browsers.
+canton_evm_explorer_public_evm_rpc_url: "{{ network_public_rpc_url | default('') }}"
 canton_evm_explorer_chain_id: 936485
 canton_evm_explorer_port: 3000
 
