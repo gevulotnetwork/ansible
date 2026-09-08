@@ -13,7 +13,11 @@ ExecStart=%h/zenith/bin/sequencer node \
 	--chain {{ zenith_chain }} \
 	--datadir %h/zenith/data/sequencer-{{ sq.id }} \
 	--http --http.addr 0.0.0.0 --http.port {{ sq.http_port | default(sq.port) }} \
+	--http.api {{ sq.rpc_api | default('eth,net,web3') }} \
 	--http.corsdomain "*" \
+	--ws --ws.addr 0.0.0.0 --ws.port {{ sq.ws_port | default(sq.http_port | default(sq.port)) }} \
+	--ws.api {{ sq.rpc_api | default('eth,net,web3') }} \
+	--ws.origins "*" \
 {% if sq.authrpc_port is defined %}
 	--authrpc.jwtsecret %h/zenith/data/sequencer-{{ sq.id }}/jwt.hex \
 	--authrpc.port {{ sq.authrpc_port }} \
